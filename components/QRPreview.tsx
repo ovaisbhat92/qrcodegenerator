@@ -8,12 +8,13 @@ import {
   useMemo,
 } from "react";
 import type { CustomizationOptions, CornerStyle } from "@/types/qr";
-import { downloadPNG, downloadSVG } from "@/lib/download";
+import { downloadPNG, downloadSVG, downloadJPEG } from "@/lib/download";
 import type { QRType } from "@/types/qr";
 
 export interface QRPreviewHandle {
   downloadPNG: () => void;
   downloadSVG: () => void;
+  downloadJPEG: () => void;
 }
 
 // Structural type for the qr-code-styling instance (avoids importing the class at module level).
@@ -149,6 +150,9 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
       },
       downloadSVG: () => {
         if (qrCodeRef.current) downloadSVG(qrCodeRef.current, qrType);
+      },
+      downloadJPEG: () => {
+        if (qrCodeRef.current) downloadJPEG(qrCodeRef.current, qrType);
       },
     }));
 

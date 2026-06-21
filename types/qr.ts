@@ -1,4 +1,4 @@
-export type QRType = "url" | "text";
+export type QRType = "url" | "text" | "phone" | "vcard" | "location";
 
 export type DotStyle = "square" | "rounded" | "dots" | "extra-rounded";
 
@@ -7,6 +7,23 @@ export type CornerStyle = "square" | "rounded" | "circle";
 export type ErrorCorrection = "L" | "M" | "Q" | "H";
 
 export type GradientType = "linear" | "radial";
+
+export interface VCardInput {
+  fullName: string;
+  phone: string;
+  email: string;
+  company: string;
+  jobTitle: string;
+  website: string;
+  address: string;
+}
+
+export interface LocationInput {
+  mode: "coordinates" | "mapslink";
+  lat: string;
+  lng: string;
+  mapsLink: string;
+}
 
 export interface GradientOptions {
   type: GradientType;

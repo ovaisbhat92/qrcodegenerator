@@ -9,6 +9,9 @@ export interface QRDownloadable {
 const FILENAMES: Record<QRType, string> = {
   url: "url-qr-code",
   text: "text-qr-code",
+  phone: "phone-qr-code",
+  vcard: "vcard-qr-code",
+  location: "location-qr-code",
 };
 
 export function getFilename(qrType: QRType): string {
@@ -21,4 +24,8 @@ export function downloadPNG(qr: QRDownloadable, qrType: QRType): void {
 
 export function downloadSVG(qr: QRDownloadable, qrType: QRType): void {
   qr.download({ name: getFilename(qrType), extension: "svg" });
+}
+
+export function downloadJPEG(qr: QRDownloadable, qrType: QRType): void {
+  qr.download({ name: getFilename(qrType), extension: "jpeg" });
 }

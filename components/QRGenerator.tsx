@@ -1,25 +1,51 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import type { QRType, CustomizationOptions } from "@/types/qr";
+import type { QRType, CustomizationOptions, VCardInput, LocationInput } from "@/types/qr";
 import { DEFAULT_CUSTOMIZATION } from "@/types/qr";
 import {
   generateUrlPayload,
   generateTextPayload,
+  generatePhonePayload,
+  generateVCardPayload,
+  generateLocationPayload,
 } from "@/lib/qrPayloads";
 import {
   validateUrl,
   validateText,
+  validatePhone,
+  validateVCard,
+  validateLocation,
 } from "@/lib/validators";
 import QRTypeSelector from "@/components/QRTypeSelector";
 import CustomizationPanel from "@/components/CustomizationPanel";
 import QRPreview, { type QRPreviewHandle } from "@/components/QRPreview";
 import DownloadButtons from "@/components/DownloadButtons";
 
+const DEFAULT_VCARD: VCardInput = {
+  fullName: "",
+  phone: "",
+  email: "",
+  company: "",
+  jobTitle: "",
+  website: "",
+  address: "",
+};
+
+const DEFAULT_LOCATION: LocationInput = {
+  mode: "coordinates",
+  lat: "",
+  lng: "",
+  mapsLink: "",
+};
+
 export default function QRGenerator() {
   const [qrType, setQrType] = useState<QRType>("url");
   const [urlInput, setUrlInput] = useState("");
   const [textInput, setTextInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [vcardInput, setVcardInput] = useState<VCardInput>(DEFAULT_VCARD);
+  const [locationInput, setLocationInput] = useState<LocationInput>(DEFAULT_LOCATION);
   const [customization, setCustomization] = useState<CustomizationOptions>(
     DEFAULT_CUSTOMIZATION
   );
@@ -37,12 +63,20 @@ export default function QRGenerator() {
         const v = validateText(textInput);
         return { validation: v, payload: v.valid ? generateTextPayload(textInput) : "" };
       }
+      case "phone": {
+        const v = validatePhone(phoneInput);
+        return { validation: v, payload: v.valid ? generatePhonePayload(phoneInput) : "" };
+      }
+      case "vcard": {
+        const v = validateVCard(vcardInput);
+        return { validation: v, payload: v.valid ? generateVCardPayload(vcardInput) : "" };
+      }
+      case "location": {
+        const v = validateLocation(locationInput);
+        return { validation: v, payload: v.valid ? generateLocationPayload(locationInput) : "" };
+      }
     }
-  }, [qrType, urlInput, textInput]);
-
-  function handleTypeChange(type: QRType) {
-    setQrType(type);
-  }
+  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput]);
 
   const isDisabled = !validation?.valid || !payload;
 
@@ -54,7 +88,7 @@ export default function QRGenerator() {
           QR Code Generator
         </h1>
         <p className="mt-2 text-gray-500">
-          Create custom QR codes for URLs and text — free, instant, and client-side.
+          Create custom QR codes for URLs, text, phone, contacts, and locations — free, instant, and client-side.
         </p>
       </div>
 
@@ -65,7 +99,7 @@ export default function QRGenerator() {
             <h2 className="mb-4 text-lg font-semibold text-gray-800">
               Content
             </h2>
-            <QRTypeSelector value={qrType} onChange={handleTypeChange} />
+            <QRTypeSelector value={qrType} onChange={setQrType} />
             <div className="mt-5">
               {qrType === "url" && (
                 <UrlForm
@@ -78,6 +112,27 @@ export default function QRGenerator() {
                 <TextForm
                   value={textInput}
                   onChange={setTextInput}
+                  validation={validation}
+                />
+              )}
+              {qrType === "phone" && (
+                <PhoneForm
+                  value={phoneInput}
+                  onChange={setPhoneInput}
+                  validation={validation}
+                />
+              )}
+              {qrType === "vcard" && (
+                <VCardForm
+                  value={vcardInput}
+                  onChange={setVcardInput}
+                  validation={validation}
+                />
+              )}
+              {qrType === "location" && (
+                <LocationForm
+                  value={locationInput}
+                  onChange={setLocationInput}
                   validation={validation}
                 />
               )}
@@ -116,6 +171,7 @@ export default function QRGenerator() {
               <DownloadButtons
                 onDownloadPNG={() => previewRef.current?.downloadPNG()}
                 onDownloadSVG={() => previewRef.current?.downloadSVG()}
+                onDownloadJPEG={() => previewRef.current?.downloadJPEG()}
                 disabled={isDisabled}
               />
             </Card>
@@ -126,13 +182,15 @@ export default function QRGenerator() {
   );
 }
 
-// ── Input forms ─────────────────────────────────────────────────────────────
+// ── Shared types ─────────────────────────────────────────────────────────────
 
 interface ValidationResult {
   valid: boolean;
   error?: string;
   warning?: string;
 }
+
+// ── URL form ──────────────────────────────────────────────────────────────────
 
 function UrlForm({
   value,
@@ -168,6 +226,8 @@ function UrlForm({
     </div>
   );
 }
+
+// ── Text form ─────────────────────────────────────────────────────────────────
 
 function TextForm({
   value,
@@ -210,7 +270,230 @@ function TextForm({
   );
 }
 
+// ── Phone form ────────────────────────────────────────────────────────────────
+
+function PhoneForm({
+  value,
+  onChange,
+  validation,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  validation: ValidationResult;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-gray-700">
+        Phone number
+      </label>
+      <input
+        type="tel"
+        inputMode="tel"
+        placeholder="+1 555-123-4567"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={input(value !== "" && !validation.valid)}
+        autoComplete="tel"
+      />
+      {value && !validation.valid && validation.error && (
+        <p className="text-xs text-red-500">{validation.error}</p>
+      )}
+    </div>
+  );
+}
+
+// ── vCard form ────────────────────────────────────────────────────────────────
+
+function VCardForm({
+  value,
+  onChange,
+  validation,
+}: {
+  value: VCardInput;
+  onChange: (v: VCardInput) => void;
+  validation: ValidationResult;
+}) {
+  const set = <K extends keyof VCardInput>(key: K, val: VCardInput[K]) =>
+    onChange({ ...value, [key]: val });
+
+  return (
+    <div className="space-y-3">
+      <Field label="Full name *">
+        <input
+          type="text"
+          placeholder="Jane Smith"
+          value={value.fullName}
+          onChange={(e) => set("fullName", e.target.value)}
+          className={input(!validation.valid && !value.fullName.trim())}
+          autoComplete="name"
+        />
+        {!validation.valid && !value.fullName.trim() && validation.error && (
+          <p className="text-xs text-red-500">{validation.error}</p>
+        )}
+      </Field>
+
+      <Field label="Phone">
+        <input
+          type="tel"
+          placeholder="+1 555-123-4567"
+          value={value.phone}
+          onChange={(e) => set("phone", e.target.value)}
+          className={input(false)}
+          autoComplete="tel"
+        />
+      </Field>
+
+      <Field label="Email">
+        <input
+          type="email"
+          placeholder="jane@example.com"
+          value={value.email}
+          onChange={(e) => set("email", e.target.value)}
+          className={input(false)}
+          autoComplete="email"
+        />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Company">
+          <input
+            type="text"
+            placeholder="Acme Corp"
+            value={value.company}
+            onChange={(e) => set("company", e.target.value)}
+            className={input(false)}
+            autoComplete="organization"
+          />
+        </Field>
+        <Field label="Job title">
+          <input
+            type="text"
+            placeholder="Product Manager"
+            value={value.jobTitle}
+            onChange={(e) => set("jobTitle", e.target.value)}
+            className={input(false)}
+            autoComplete="organization-title"
+          />
+        </Field>
+      </div>
+
+      <Field label="Website">
+        <input
+          type="url"
+          placeholder="https://janesmith.com"
+          value={value.website}
+          onChange={(e) => set("website", e.target.value)}
+          className={input(false)}
+          autoComplete="url"
+        />
+      </Field>
+
+      <Field label="Address">
+        <input
+          type="text"
+          placeholder="123 Main St, New York, NY 10001"
+          value={value.address}
+          onChange={(e) => set("address", e.target.value)}
+          className={input(false)}
+          autoComplete="street-address"
+        />
+      </Field>
+    </div>
+  );
+}
+
+// ── Location form ─────────────────────────────────────────────────────────────
+
+function LocationForm({
+  value,
+  onChange,
+  validation,
+}: {
+  value: LocationInput;
+  onChange: (v: LocationInput) => void;
+  validation: ValidationResult;
+}) {
+  const set = <K extends keyof LocationInput>(key: K, val: LocationInput[K]) =>
+    onChange({ ...value, [key]: val });
+
+  return (
+    <div className="space-y-4">
+      {/* Mode toggle */}
+      <div className="flex gap-1 rounded-xl bg-gray-100 p-1">
+        {(["coordinates", "mapslink"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => set("mode", mode)}
+            className={[
+              "flex flex-1 items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+              value.mode === mode
+                ? "bg-white text-brand-600 shadow-sm"
+                : "text-gray-500 hover:text-gray-700",
+            ].join(" ")}
+          >
+            {mode === "coordinates" ? "Lat / Long" : "Maps Link"}
+          </button>
+        ))}
+      </div>
+
+      {value.mode === "coordinates" ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Latitude">
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="40.7128"
+              value={value.lat}
+              onChange={(e) => set("lat", e.target.value)}
+              className={input(!validation.valid && !value.lat.trim())}
+            />
+          </Field>
+          <Field label="Longitude">
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="-74.0060"
+              value={value.lng}
+              onChange={(e) => set("lng", e.target.value)}
+              className={input(!validation.valid && !value.lng.trim())}
+            />
+          </Field>
+          {!validation.valid && validation.error && (
+            <p className="col-span-2 text-xs text-red-500">{validation.error}</p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">
+            Google Maps link
+          </label>
+          <input
+            type="url"
+            placeholder="https://www.google.com/maps/place/..."
+            value={value.mapsLink}
+            onChange={(e) => set("mapsLink", e.target.value)}
+            className={input(value.mapsLink !== "" && !validation.valid)}
+          />
+          {value.mapsLink && !validation.valid && validation.error && (
+            <p className="text-xs text-red-500">{validation.error}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      {children}
+    </div>
+  );
+}
 
 function Card({ children }: { children: React.ReactNode }) {
   return (

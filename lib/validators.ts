@@ -1,3 +1,5 @@
+import type { VCardInput, LocationInput } from "@/types/qr";
+
 export interface ValidationResult {
   valid: boolean;
   value?: string;       // normalized value (e.g. URL with https:// prepended)
@@ -38,6 +40,48 @@ export function validateText(text: string): ValidationResult {
       valid: true,
       warning: `Long text (${text.length} chars) creates a very dense QR code that may be hard to scan. Consider shortening it.`,
     };
+  }
+  return { valid: true };
+}
+
+export function validatePhone(phone: string): ValidationResult {
+  const trimmed = phone.trim();
+  if (!trimmed) return { valid: false, error: "Phone number is required" };
+  if (!/^[+\d][\d\s\-().]{2,}$/.test(trimmed)) {
+    return { valid: false, error: "Enter a valid phone number (e.g. +1 555-123-4567)" };
+  }
+  return { valid: true };
+}
+
+export function validateVCard(vcard: VCardInput): ValidationResult {
+  if (!vcard.fullName.trim()) {
+    return { valid: false, error: "Full name is required" };
+  }
+  return { valid: true };
+}
+
+const MAPS_URL_RE =
+  /^https?:\/\/(www\.)?google\.[a-z.]+\/maps|^https?:\/\/maps\.google\.|^https?:\/\/(goo\.gl\/maps|maps\.app\.goo\.gl)/i;
+
+export function validateLocation(location: LocationInput): ValidationResult {
+  if (location.mode === "mapslink") {
+    const url = location.mapsLink.trim();
+    if (!url) return { valid: false, error: "Google Maps link is required" };
+    if (!MAPS_URL_RE.test(url)) {
+      return { valid: false, error: "Enter a valid Google Maps URL" };
+    }
+    return { valid: true };
+  }
+  if (!location.lat.trim() || !location.lng.trim()) {
+    return { valid: false, error: "Latitude and longitude are required" };
+  }
+  const lat = parseFloat(location.lat);
+  const lng = parseFloat(location.lng);
+  if (isNaN(lat) || lat < -90 || lat > 90) {
+    return { valid: false, error: "Latitude must be between -90 and 90" };
+  }
+  if (isNaN(lng) || lng < -180 || lng > 180) {
+    return { valid: false, error: "Longitude must be between -180 and 180" };
   }
   return { valid: true };
 }
