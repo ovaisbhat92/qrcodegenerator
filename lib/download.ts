@@ -4,6 +4,7 @@ import type { QRType } from "@/types/qr";
 // importing the class at module level (it accesses browser APIs on load).
 export interface QRDownloadable {
   download(options: { name: string; extension: string }): Promise<void>;
+  getRawData(extension: string): Promise<Blob>;
 }
 
 const FILENAMES: Record<QRType, string> = {
@@ -28,4 +29,8 @@ export function downloadSVG(qr: QRDownloadable, qrType: QRType): void {
 
 export function downloadJPEG(qr: QRDownloadable, qrType: QRType): void {
   qr.download({ name: getFilename(qrType), extension: "jpeg" });
+}
+
+export function downloadWebP(qr: QRDownloadable, qrType: QRType): void {
+  qr.download({ name: getFilename(qrType), extension: "webp" });
 }

@@ -8,13 +8,16 @@ import {
   useMemo,
 } from "react";
 import type { CustomizationOptions, CornerStyle } from "@/types/qr";
-import { downloadPNG, downloadSVG, downloadJPEG } from "@/lib/download";
+import { downloadPNG, downloadSVG, downloadJPEG, downloadWebP, getFilename } from "@/lib/download";
 import type { QRType } from "@/types/qr";
 
 export interface QRPreviewHandle {
   downloadPNG: () => void;
   downloadSVG: () => void;
   downloadJPEG: () => void;
+  downloadWebP: () => void;
+  downloadPDF: () => Promise<void>;
+  copyToClipboard: () => Promise<void>;
 }
 
 // Structural type for the qr-code-styling instance (avoids importing the class at module level).
@@ -22,6 +25,7 @@ interface QRInstance {
   append(container: HTMLElement): void;
   update(options: Record<string, unknown>): void;
   download(options: { name: string; extension: string }): Promise<void>;
+  getRawData(extension: string): Promise<Blob>;
 }
 
 interface Props {
@@ -34,7 +38,6 @@ interface Props {
 let qrModulePromise: Promise<{ default: unknown }> | null = null;
 function getQRModule(): Promise<{ default: unknown }> {
   if (!qrModulePromise) {
-    // Dynamic import keeps qr-code-styling out of the SSR bundle
     qrModulePromise = import("qr-code-styling") as Promise<{ default: unknown }>;
   }
   return qrModulePromise;
@@ -61,7 +64,6 @@ function buildOptions(data: string, opts: CustomizationOptions): Record<string, 
   if (gradient) {
     dotsOptions.gradient = {
       type: gradient.type,
-      // qr-code-styling gradient rotation is in radians
       rotation: (gradient.rotation * Math.PI) / 180,
       colorStops: [
         { offset: 0, color: gradient.startColor },
@@ -105,7 +107,16 @@ function buildOptions(data: string, opts: CustomizationOptions): Record<string, 
   return base;
 }
 
-const PREVIEW_SIZE = 288; // fixed visual preview size in px
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+const PREVIEW_SIZE = 288;
 
 const QRPreview = forwardRef<QRPreviewHandle, Props>(
   ({ data, qrType, options }, ref) => {
@@ -113,7 +124,6 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
     const qrCodeRef = useRef<QRInstance | null>(null);
     const isMountedRef = useRef(true);
 
-    // Stable options object so the effect only runs when something real changes.
     const qrOptions = useMemo(() => buildOptions(data, options), [data, options]);
 
     useEffect(() => {
@@ -131,7 +141,6 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
 
       getQRModule().then(({ default: QRCodeStyling }) => {
         if (!isMountedRef.current || !containerRef.current) return;
-        // qr-code-styling exports a class but types it as `unknown` via dynamic import
         type QRCtor = new (opts: Record<string, unknown>) => QRInstance;
         const Ctor = QRCodeStyling as QRCtor;
         if (!qrCodeRef.current) {
@@ -154,12 +163,35 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
       downloadJPEG: () => {
         if (qrCodeRef.current) downloadJPEG(qrCodeRef.current, qrType);
       },
+      downloadWebP: () => {
+        if (qrCodeRef.current) downloadWebP(qrCodeRef.current, qrType);
+      },
+      downloadPDF: async () => {
+        if (!qrCodeRef.current) return;
+        const blob = await qrCodeRef.current.getRawData("png");
+        const dataUrl = await blobToDataUrl(blob);
+        const { jsPDF } = await import("jspdf");
+        const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const pageW = 210;
+        const pageH = 297;
+        const imgSize = 140;
+        pdf.addImage(dataUrl, "PNG", (pageW - imgSize) / 2, (pageH - imgSize) / 2, imgSize, imgSize);
+        pdf.save(`${getFilename(qrType)}.pdf`);
+      },
+      copyToClipboard: async () => {
+        if (!qrCodeRef.current) return;
+        if (!navigator.clipboard || !("ClipboardItem" in window)) {
+          throw new Error("unsupported");
+        }
+        const blob = await qrCodeRef.current.getRawData("png");
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": blob }),
+        ]);
+      },
     }));
 
-    // Visual scale factor so large QRs still fit the preview panel.
     const scale = options.size > PREVIEW_SIZE ? PREVIEW_SIZE / options.size : 1;
 
-    // Checkerboard pattern to visualise transparent backgrounds.
     const bgStyle =
       options.transparentBg
         ? {
@@ -171,7 +203,7 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
 
     return (
       <div
-        className="overflow-hidden rounded-xl border border-gray-100"
+        className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700"
         style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE, ...bgStyle }}
       >
         {!data ? (

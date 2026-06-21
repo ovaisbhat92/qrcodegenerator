@@ -13,9 +13,60 @@ import { DEFAULT_CUSTOMIZATION } from "@/types/qr";
 interface Props {
   options: CustomizationOptions;
   onChange: (options: CustomizationOptions) => void;
+  onReset: () => void;
 }
 
-export default function CustomizationPanel({ options, onChange }: Props) {
+// ── Preset designs ────────────────────────────────────────────────────────────
+
+type PresetKey = Pick<
+  CustomizationOptions,
+  "fgColor" | "bgColor" | "transparentBg" | "dotStyle" | "cornerStyle" | "cornerColor" | "gradient"
+>;
+
+const PRESETS: { name: string; color: string; preset: PresetKey }[] = [
+  {
+    name: "Classic",
+    color: "#000000",
+    preset: {
+      fgColor: "#000000", bgColor: "#ffffff", transparentBg: false,
+      dotStyle: "square", cornerStyle: "square", cornerColor: "#000000", gradient: null,
+    },
+  },
+  {
+    name: "Blue Business",
+    color: "#1E40AF",
+    preset: {
+      fgColor: "#1E40AF", bgColor: "#ffffff", transparentBg: false,
+      dotStyle: "rounded", cornerStyle: "rounded", cornerColor: "#1E40AF", gradient: null,
+    },
+  },
+  {
+    name: "Green Payment",
+    color: "#15803D",
+    preset: {
+      fgColor: "#15803D", bgColor: "#ffffff", transparentBg: false,
+      dotStyle: "dots", cornerStyle: "circle", cornerColor: "#15803D", gradient: null,
+    },
+  },
+  {
+    name: "Purple Social",
+    color: "#7C3AED",
+    preset: {
+      fgColor: "#7C3AED", bgColor: "#F5F3FF", transparentBg: false,
+      dotStyle: "extra-rounded", cornerStyle: "rounded", cornerColor: "#7C3AED", gradient: null,
+    },
+  },
+  {
+    name: "Minimal Grey",
+    color: "#4B5563",
+    preset: {
+      fgColor: "#4B5563", bgColor: "#F9FAFB", transparentBg: false,
+      dotStyle: "square", cornerStyle: "square", cornerColor: "#4B5563", gradient: null,
+    },
+  },
+];
+
+export default function CustomizationPanel({ options, onChange, onReset }: Props) {
   const set = <K extends keyof CustomizationOptions>(
     key: K,
     value: CustomizationOptions[K]
@@ -58,18 +109,36 @@ export default function CustomizationPanel({ options, onChange }: Props) {
     set(
       "gradient",
       enabled
-        ? {
-            type: "linear",
-            startColor: options.fgColor,
-            endColor: "#6366f1",
-            rotation: 0,
-          }
+        ? { type: "linear", startColor: options.fgColor, endColor: "#6366f1", rotation: 0 }
         : null
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* ── Quick Presets ── */}
+      <Section title="Quick Presets">
+        <div className="grid grid-cols-5 gap-1.5">
+          {PRESETS.map(({ name, color, preset }) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => onChange({ ...options, ...preset })}
+              className="group flex flex-col items-center gap-1.5 rounded-lg p-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+              title={name}
+            >
+              <div
+                className="h-8 w-8 rounded-md border border-gray-200 shadow-sm dark:border-gray-600"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-center text-[10px] leading-tight text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200">
+                {name}
+              </span>
+            </button>
+          ))}
+        </div>
+      </Section>
+
       {/* ── Size & Spacing ── */}
       <Section title="Size & Spacing">
         <SliderRow
@@ -106,7 +175,7 @@ export default function CustomizationPanel({ options, onChange }: Props) {
             </button>
           ))}
         </div>
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
           H (30% redundancy) is best for logos. L uses less data.
         </p>
       </Section>
@@ -248,21 +317,21 @@ export default function CustomizationPanel({ options, onChange }: Props) {
         {!options.logo ? (
           <label
             htmlFor="logo-upload"
-            className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500 hover:border-brand-500 hover:text-brand-600 transition-colors"
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500 transition-colors hover:border-brand-500 hover:text-brand-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-brand-400 dark:hover:text-brand-400"
           >
             <span>📁</span>
             <span>Upload PNG / JPG / SVG (max 1 MB)</span>
           </label>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2">
+            <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={options.logo.dataUrl}
                 alt="Logo preview"
                 className="h-8 w-8 rounded object-contain"
               />
-              <span className="flex-1 text-sm text-gray-600">Logo uploaded</span>
+              <span className="flex-1 text-sm text-gray-600 dark:text-gray-300">Logo uploaded</span>
               <button
                 type="button"
                 onClick={removeLogo}
@@ -289,7 +358,7 @@ export default function CustomizationPanel({ options, onChange }: Props) {
                 set("logo", { ...options.logo!, padding: v })
               }
             />
-            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
               ⚠️ Large logos reduce scannability. Keep under 30% and use error correction H.
             </p>
           </div>
@@ -299,8 +368,8 @@ export default function CustomizationPanel({ options, onChange }: Props) {
       {/* ── Reset ── */}
       <button
         type="button"
-        onClick={() => onChange({ ...DEFAULT_CUSTOMIZATION })}
-        className="w-full rounded-lg border border-gray-200 py-2 text-sm text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
+        onClick={onReset}
+        className="w-full rounded-lg border border-gray-200 py-2 text-sm text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-200"
       >
         Reset to defaults
       </button>
@@ -313,7 +382,7 @@ export default function CustomizationPanel({ options, onChange }: Props) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
         {title}
       </p>
       {children}
@@ -341,10 +410,9 @@ function SliderRow({
   return (
     <div className="mb-2">
       <div className="mb-1 flex items-center justify-between">
-        <label className="text-sm text-gray-600">{label}</label>
-        <span className="font-mono text-sm font-medium text-gray-700">
-          {value}
-          {unit}
+        <label className="text-sm text-gray-600 dark:text-gray-400">{label}</label>
+        <span className="font-mono text-sm font-medium text-gray-700 dark:text-gray-200">
+          {value}{unit}
         </span>
       </div>
       <input
@@ -372,14 +440,14 @@ function ColorRow({
   disabled?: boolean;
 }) {
   return (
-    <div className={`mb-2 flex items-center justify-between gap-3 ${disabled ? "opacity-40 pointer-events-none" : ""}`}>
-      <label className="text-sm text-gray-600">{label}</label>
+    <div className={`mb-2 flex items-center justify-between gap-3 ${disabled ? "pointer-events-none opacity-40" : ""}`}>
+      <label className="text-sm text-gray-600 dark:text-gray-400">{label}</label>
       <div className="flex items-center gap-2">
         <input
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-8 w-8 cursor-pointer rounded border border-gray-200 p-0.5"
+          className="h-8 w-8 cursor-pointer rounded border border-gray-200 p-0.5 dark:border-gray-600"
           disabled={disabled}
         />
         <input
@@ -391,7 +459,7 @@ function ColorRow({
           }}
           maxLength={7}
           disabled={disabled}
-          className="w-24 rounded border border-gray-200 px-2 py-1 font-mono text-sm focus:border-brand-500 focus:outline-none"
+          className="w-24 rounded border border-gray-200 bg-white px-2 py-1 font-mono text-sm focus:border-brand-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
         />
       </div>
     </div>
@@ -409,7 +477,7 @@ function ToggleRow({
 }) {
   return (
     <div className="mb-2 flex items-center justify-between gap-3">
-      <span className="text-sm text-gray-600">{label}</span>
+      <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
       <button
         type="button"
         role="switch"
@@ -417,7 +485,7 @@ function ToggleRow({
         onClick={() => onChange(!checked)}
         className={[
           "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none",
-          checked ? "bg-brand-600" : "bg-gray-200",
+          checked ? "bg-brand-600" : "bg-gray-200 dark:bg-gray-600",
         ].join(" ")}
       >
         <span
@@ -436,6 +504,9 @@ function pill(active: boolean) {
     "rounded-lg px-3 py-1.5 text-sm font-medium border transition-all",
     active
       ? "bg-brand-600 text-white border-brand-600"
-      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300",
+      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-gray-500",
   ].join(" ");
 }
+
+// Keep DEFAULT_CUSTOMIZATION accessible for backwards compat (used by onReset callers)
+export { DEFAULT_CUSTOMIZATION };
