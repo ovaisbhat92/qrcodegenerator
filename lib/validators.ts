@@ -1,5 +1,3 @@
-import type { WifiInput } from "@/types/qr";
-
 export interface ValidationResult {
   valid: boolean;
   value?: string;       // normalized value (e.g. URL with https:// prepended)
@@ -39,19 +37,6 @@ export function validateText(text: string): ValidationResult {
     return {
       valid: true,
       warning: `Long text (${text.length} chars) creates a very dense QR code that may be hard to scan. Consider shortening it.`,
-    };
-  }
-  return { valid: true };
-}
-
-export function validateWifi(wifi: WifiInput): ValidationResult {
-  if (!wifi.ssid.trim()) {
-    return { valid: false, error: "Network name (SSID) is required" };
-  }
-  if (wifi.encryption !== "nopass" && !wifi.password) {
-    return {
-      valid: false,
-      error: "Password is required for WPA/WPA2 and WEP networks",
     };
   }
   return { valid: true };

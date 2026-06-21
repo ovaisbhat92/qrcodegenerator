@@ -10,7 +10,6 @@ interface Props {
 const TABS: { id: QRType; label: string; icon: string }[] = [
   { id: "url",  label: "Website URL", icon: "🔗" },
   { id: "text", label: "Plain Text",  icon: "📝" },
-  { id: "wifi", label: "Wi-Fi",       icon: "📶" },
 ];
 
 export default function QRTypeSelector({ value, onChange }: Props) {

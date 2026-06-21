@@ -1,35 +1,25 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import type { QRType, WifiInput, CustomizationOptions } from "@/types/qr";
+import type { QRType, CustomizationOptions } from "@/types/qr";
 import { DEFAULT_CUSTOMIZATION } from "@/types/qr";
 import {
   generateUrlPayload,
   generateTextPayload,
-  generateWifiPayload,
 } from "@/lib/qrPayloads";
 import {
   validateUrl,
   validateText,
-  validateWifi,
 } from "@/lib/validators";
 import QRTypeSelector from "@/components/QRTypeSelector";
 import CustomizationPanel from "@/components/CustomizationPanel";
 import QRPreview, { type QRPreviewHandle } from "@/components/QRPreview";
 import DownloadButtons from "@/components/DownloadButtons";
 
-const DEFAULT_WIFI: WifiInput = {
-  ssid: "",
-  password: "",
-  encryption: "WPA",
-  hidden: false,
-};
-
 export default function QRGenerator() {
   const [qrType, setQrType] = useState<QRType>("url");
   const [urlInput, setUrlInput] = useState("");
   const [textInput, setTextInput] = useState("");
-  const [wifiInput, setWifiInput] = useState<WifiInput>(DEFAULT_WIFI);
   const [customization, setCustomization] = useState<CustomizationOptions>(
     DEFAULT_CUSTOMIZATION
   );
@@ -47,12 +37,8 @@ export default function QRGenerator() {
         const v = validateText(textInput);
         return { validation: v, payload: v.valid ? generateTextPayload(textInput) : "" };
       }
-      case "wifi": {
-        const v = validateWifi(wifiInput);
-        return { validation: v, payload: v.valid ? generateWifiPayload(wifiInput) : "" };
-      }
     }
-  }, [qrType, urlInput, textInput, wifiInput]);
+  }, [qrType, urlInput, textInput]);
 
   function handleTypeChange(type: QRType) {
     setQrType(type);
@@ -68,7 +54,7 @@ export default function QRGenerator() {
           QR Code Generator
         </h1>
         <p className="mt-2 text-gray-500">
-          Create custom QR codes for URLs, text, and Wi-Fi networks — free, instant, and client-side.
+          Create custom QR codes for URLs and text — free, instant, and client-side.
         </p>
       </div>
 
@@ -92,13 +78,6 @@ export default function QRGenerator() {
                 <TextForm
                   value={textInput}
                   onChange={setTextInput}
-                  validation={validation}
-                />
-              )}
-              {qrType === "wifi" && (
-                <WifiForm
-                  value={wifiInput}
-                  onChange={setWifiInput}
                   validation={validation}
                 />
               )}
@@ -226,84 +205,6 @@ function TextForm({
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-600">
           ⚠️ {validation.warning}
         </p>
-      )}
-    </div>
-  );
-}
-
-function WifiForm({
-  value,
-  onChange,
-  validation,
-}: {
-  value: WifiInput;
-  onChange: (v: WifiInput) => void;
-  validation: ValidationResult;
-}) {
-  const set = <K extends keyof WifiInput>(key: K, val: WifiInput[K]) =>
-    onChange({ ...value, [key]: val });
-
-  return (
-    <div className="space-y-3">
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Network Name (SSID)
-        </label>
-        <input
-          type="text"
-          placeholder="MyWiFiNetwork"
-          value={value.ssid}
-          onChange={(e) => set("ssid", e.target.value)}
-          className={input(!validation.valid && !value.ssid)}
-          autoComplete="off"
-        />
-      </div>
-
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Encryption
-        </label>
-        <select
-          value={value.encryption}
-          onChange={(e) =>
-            set("encryption", e.target.value as WifiInput["encryption"])
-          }
-          className={input(false)}
-        >
-          <option value="WPA">WPA / WPA2 (recommended)</option>
-          <option value="WEP">WEP</option>
-          <option value="nopass">No Password (open network)</option>
-        </select>
-      </div>
-
-      {value.encryption !== "nopass" && (
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            Password
-          </label>
-          <input
-            type="password"
-            placeholder="Network password"
-            value={value.password}
-            onChange={(e) => set("password", e.target.value)}
-            className={input(!validation.valid && !value.password)}
-            autoComplete="off"
-          />
-        </div>
-      )}
-
-      <label className="flex items-center gap-3 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={value.hidden}
-          onChange={(e) => set("hidden", e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 accent-brand-600"
-        />
-        <span className="text-sm text-gray-700">Hidden network</span>
-      </label>
-
-      {!validation.valid && validation.error && (
-        <p className="text-xs text-red-500">{validation.error}</p>
       )}
     </div>
   );

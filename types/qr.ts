@@ -1,4 +1,4 @@
-export type QRType = "url" | "text" | "wifi";
+export type QRType = "url" | "text";
 
 export type DotStyle = "square" | "rounded" | "dots" | "extra-rounded";
 
@@ -6,16 +6,7 @@ export type CornerStyle = "square" | "rounded" | "circle";
 
 export type ErrorCorrection = "L" | "M" | "Q" | "H";
 
-export type WifiEncryption = "WPA" | "WEP" | "nopass";
-
 export type GradientType = "linear" | "radial";
-
-export interface WifiInput {
-  ssid: string;
-  password: string;
-  encryption: WifiEncryption;
-  hidden: boolean;
-}
 
 export interface GradientOptions {
   type: GradientType;

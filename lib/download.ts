@@ -9,7 +9,6 @@ export interface QRDownloadable {
 const FILENAMES: Record<QRType, string> = {
   url: "url-qr-code",
   text: "text-qr-code",
-  wifi: "wifi-qr-code",
 };
 
 export function getFilename(qrType: QRType): string {
