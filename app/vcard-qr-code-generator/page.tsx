@@ -361,12 +361,12 @@ export default function VCardQRCodeGeneratorPage() {
             </li>
             <li>
               <Link
-                href="/"
+                href="/qr-code-generator"
                 className="text-indigo-600 underline decoration-indigo-200 hover:decoration-indigo-500 dark:text-indigo-400"
               >
-                Full QR Code Generator
+                QR Code Generator Hub
               </Link>{" "}
-              — all types including text and location QR codes
+              — overview of all types and when to use each
             </li>
           </ul>
         </div>
