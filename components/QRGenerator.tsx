@@ -72,8 +72,8 @@ function usePersistedCustomization() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function QRGenerator() {
-  const [qrType, setQrType] = useState<QRType>("url");
+export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRType }) {
+  const [qrType, setQrType] = useState<QRType>(defaultType);
   const [urlInput, setUrlInput] = useState("");
   const [textInput, setTextInput] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
