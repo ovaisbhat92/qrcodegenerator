@@ -78,7 +78,7 @@ const faqSchema = {
 
 export default function LocationQRCodeGeneratorPage() {
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <main className="min-h-screen bg-[var(--bg-base)]">
       <QRGenerator defaultType="location" />
 
       <article className="mx-auto max-w-3xl px-4 pb-20 pt-4">

@@ -216,8 +216,13 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
       <div
         role="img"
         aria-label={ariaLabel}
-        className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700"
-        style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE, ...bgStyle }}
+        className="overflow-hidden rounded-xl"
+        style={{
+          width: PREVIEW_SIZE,
+          height: PREVIEW_SIZE,
+          boxShadow: "0 0 30px rgba(6,182,212,0.2), 0 0 0 1px rgba(255,255,255,0.06)",
+          ...bgStyle,
+        }}
       >
         {!data ? (
           <Placeholder />

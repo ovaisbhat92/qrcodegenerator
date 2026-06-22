@@ -2,46 +2,133 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ──────────────────────────────────────────── */
+
+:root {
+  --bg-base:        #f0f9ff;
+  --bg-surface:     #ffffff;
+  --bg-input:       rgba(0, 0, 0, 0.04);
+  --border:         rgba(0, 0, 0, 0.10);
+  --text-primary:   #0c4a6e;
+  --text-secondary: rgba(12, 74, 110, 0.65);
+  --text-hint:      rgba(12, 74, 110, 0.40);
+  --gradient-heading: linear-gradient(135deg, #0c4a6e 30%, #06b6d4 100%);
+}
+
+.dark {
+  --bg-base:        #0a1628;
+  --bg-surface:     #0d1f3c;
+  --bg-input:       rgba(255, 255, 255, 0.05);
+  --border:         rgba(255, 255, 255, 0.08);
+  --text-primary:   #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.50);
+  --text-hint:      rgba(255, 255, 255, 0.25);
+  --gradient-heading: linear-gradient(135deg, #ffffff 30%, #22d3ee 100%);
+}
+
 @layer base {
   body {
-    background-color: #f3f4f6;
-  }
-  html.dark body {
-    background-color: #111827;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
   }
 }
 
-/* Uniform cross-browser range slider thumb */
+/* ── Utility classes ────────────────────────────────────────── */
+
 @layer utilities {
-  .slider::-webkit-slider-thumb {
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #4f46e5;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  /* Gradient headline text */
+  .gradient-text {
+    background: var(--gradient-heading);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
   }
-  .slider::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #4f46e5;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+
+  /* Cyan CTA / active button */
+  .btn-cyan {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #ffffff !important;
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
+  .btn-cyan:hover:not(:disabled) {
+    transform: scale(1.02);
+    box-shadow: 0 0 28px rgba(6, 182, 212, 0.5);
+  }
+  .btn-cyan:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Ghost / secondary button */
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(6, 182, 212, 0.35) !important;
+    color: #06b6d4 !important;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: rgba(6, 182, 212, 0.08);
+    border-color: rgba(6, 182, 212, 0.6) !important;
+  }
+  .btn-ghost:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Full-width themed input / textarea */
+  .themed-input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .themed-input::placeholder {
+    color: var(--text-hint);
+  }
+  .themed-input:focus {
+    border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+  }
+  .themed-input[aria-invalid="true"] {
+    border-color: #f87171;
+  }
+  .themed-input[aria-invalid="true"]:focus {
+    box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15);
+  }
+
+  /* Range slider */
   .slider {
     appearance: none;
     -webkit-appearance: none;
     height: 4px;
     border-radius: 2px;
-    background: #e5e7eb;
+    background: var(--border);
     outline: none;
   }
-}
-
-html.dark .slider {
-  background: #374151;
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #06b6d4;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+  .slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #06b6d4;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
 }

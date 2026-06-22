@@ -112,16 +112,59 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      {/* Header */}
+      {/* ── Hero ── */}
       <div className="relative mb-10 text-center">
+        {/* Radial glow */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 -top-10 -z-10 h-48"
+          style={{
+            background: "radial-gradient(ellipse at 50% 0%, rgba(6,182,212,0.15) 0%, transparent 70%)",
+          }}
+        />
+
+        {/* Theme toggle */}
         <div className="absolute right-0 top-0">
           <DarkModeToggle />
         </div>
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+
+        {/* Badge */}
+        <div
+          className="mb-4 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide"
+          style={{
+            border: "1px solid rgba(6,182,212,0.4)",
+            color: "#06b6d4",
+            background: "rgba(6,182,212,0.08)",
+          }}
+        >
+          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-brand-400" />
+          Free · No signup · Browser-only
+        </div>
+
+        {/* Headline */}
+        <h1
+          className="gradient-text text-4xl font-extrabold lg:text-5xl"
+          style={{ letterSpacing: "-0.5px" }}
+        >
           QR Code Generator
         </h1>
-        <p className="mt-2 text-gray-500 dark:text-gray-400">
+
+        {/* Subheadline */}
+        <p className="mt-3 text-base" style={{ color: "var(--text-secondary)" }}>
           Create custom QR codes for URLs, text, phone, contacts, and locations — free, instant, and client-side.
+        </p>
+
+        {/* Privacy note */}
+        <p
+          className="mt-4 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs"
+          style={{
+            background: "var(--bg-input)",
+            border: "1px solid var(--border)",
+            color: "var(--text-hint)",
+          }}
+        >
+          <ShieldIcon />
+          All processing happens in your browser. Nothing is sent to any server.
         </p>
       </div>
 
@@ -129,7 +172,7 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
         {/* ── Left column ── */}
         <div className="flex-1 space-y-6">
           <Card>
-            <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
+            <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-hint)" }}>
               Content
             </h2>
             <QRTypeSelector value={qrType} onChange={setQrType} />
@@ -153,7 +196,7 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
           </Card>
 
           <Card>
-            <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
+            <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-hint)" }}>
               Customization
             </h2>
             <CustomizationPanel
@@ -168,7 +211,7 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
         <div className="lg:w-80 xl:w-96">
           <div className="sticky top-8 space-y-4">
             <Card>
-              <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
+              <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-hint)" }}>
                 Preview
               </h2>
               <div className="flex justify-center">
@@ -179,6 +222,12 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
                   options={customization}
                 />
               </div>
+              <p
+                className="mt-3 text-center text-xs font-semibold"
+                style={{ letterSpacing: "0.18em", color: "var(--text-hint)" }}
+              >
+                LIVE PREVIEW · SCAN TO TEST
+              </p>
             </Card>
 
             <Card>
@@ -205,7 +254,7 @@ function DarkModeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="h-9 w-9" />; // placeholder to avoid layout shift
+  if (!mounted) return <div className="h-9 w-9" />;
 
   const isDark = theme === "dark";
   return (
@@ -213,7 +262,12 @@ function DarkModeToggle() {
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
-      className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+      className="rounded-full p-2 transition-colors"
+      style={{
+        background: "var(--bg-input)",
+        border: "1px solid var(--border)",
+        color: "var(--text-secondary)",
+      }}
     >
       {isDark ? <SunIcon /> : <MoonIcon />}
     </button>
@@ -244,6 +298,14 @@ function MoonIcon() {
   );
 }
 
+function ShieldIcon() {
+  return (
+    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // ── Shared types ─────────────────────────────────────────────────────────────
 
 interface ValidationResult {
@@ -266,7 +328,7 @@ function UrlForm({
   const hasError = value !== "" && !validation.valid && !!validation.error;
   return (
     <div className="space-y-1">
-      <label htmlFor="url-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label htmlFor="url-input" className="block text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
         Website URL
       </label>
       <input
@@ -276,7 +338,7 @@ function UrlForm({
         placeholder="https://example.com"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={input(hasError)}
+        className="themed-input"
         autoComplete="url"
         aria-invalid={hasError ? true : undefined}
         aria-describedby={hasError ? "url-input-error" : undefined}
@@ -287,7 +349,7 @@ function UrlForm({
         </p>
       )}
       {value && validation.valid && !value.match(/^https?:\/\//i) && (
-        <p className="text-xs text-gray-600 dark:text-gray-400">https:// will be added automatically</p>
+        <p className="text-xs" style={{ color: "var(--text-hint)" }}>https:// will be added automatically</p>
       )}
     </div>
   );
@@ -313,12 +375,13 @@ function TextForm({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <label htmlFor="text-input" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label htmlFor="text-input" className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
           Text content
         </label>
         <span
           aria-hidden="true"
-          className={`text-xs ${value.length > 1800 ? "text-red-500" : "text-gray-600 dark:text-gray-400"}`}
+          className={`text-xs ${value.length > 1800 ? "text-red-500" : ""}`}
+          style={value.length > 1800 ? {} : { color: "var(--text-hint)" }}
         >
           {value.length}/2000
         </span>
@@ -330,7 +393,7 @@ function TextForm({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         maxLength={2000}
-        className={`${input(hasError)} resize-none`}
+        className="themed-input resize-none"
         aria-invalid={hasError ? true : undefined}
         aria-describedby={describedBy}
       />
@@ -362,7 +425,7 @@ function PhoneForm({
   const hasError = value !== "" && !validation.valid && !!validation.error;
   return (
     <div className="space-y-1">
-      <label htmlFor="phone-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label htmlFor="phone-input" className="block text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
         Phone number
       </label>
       <input
@@ -372,7 +435,7 @@ function PhoneForm({
         placeholder="+1 555-123-4567"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={input(hasError)}
+        className="themed-input"
         autoComplete="tel"
         aria-invalid={hasError ? true : undefined}
         aria-describedby={hasError ? "phone-input-error" : undefined}
@@ -411,7 +474,7 @@ function VCardForm({
           placeholder="Jane Smith"
           value={value.fullName}
           onChange={(e) => set("fullName", e.target.value)}
-          className={input(nameHasError)}
+          className="themed-input"
           autoComplete="name"
           aria-invalid={nameHasError ? true : undefined}
           aria-describedby={nameHasError ? "vcard-fullname-error" : undefined}
@@ -425,29 +488,29 @@ function VCardForm({
       </Field>
       <Field label="Phone" inputId="vcard-phone">
         <input id="vcard-phone" type="tel" placeholder="+1 555-123-4567" value={value.phone}
-          onChange={(e) => set("phone", e.target.value)} className={input(false)} autoComplete="tel" />
+          onChange={(e) => set("phone", e.target.value)} className="themed-input" autoComplete="tel" />
       </Field>
       <Field label="Email" inputId="vcard-email">
         <input id="vcard-email" type="email" placeholder="jane@example.com" value={value.email}
-          onChange={(e) => set("email", e.target.value)} className={input(false)} autoComplete="email" />
+          onChange={(e) => set("email", e.target.value)} className="themed-input" autoComplete="email" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Company" inputId="vcard-company">
           <input id="vcard-company" type="text" placeholder="Acme Corp" value={value.company}
-            onChange={(e) => set("company", e.target.value)} className={input(false)} autoComplete="organization" />
+            onChange={(e) => set("company", e.target.value)} className="themed-input" autoComplete="organization" />
         </Field>
         <Field label="Job title" inputId="vcard-jobtitle">
           <input id="vcard-jobtitle" type="text" placeholder="Product Manager" value={value.jobTitle}
-            onChange={(e) => set("jobTitle", e.target.value)} className={input(false)} autoComplete="organization-title" />
+            onChange={(e) => set("jobTitle", e.target.value)} className="themed-input" autoComplete="organization-title" />
         </Field>
       </div>
       <Field label="Website" inputId="vcard-website">
         <input id="vcard-website" type="url" placeholder="https://janesmith.com" value={value.website}
-          onChange={(e) => set("website", e.target.value)} className={input(false)} autoComplete="url" />
+          onChange={(e) => set("website", e.target.value)} className="themed-input" autoComplete="url" />
       </Field>
       <Field label="Address" inputId="vcard-address">
         <input id="vcard-address" type="text" placeholder="123 Main St, New York, NY 10001" value={value.address}
-          onChange={(e) => set("address", e.target.value)} className={input(false)} autoComplete="street-address" />
+          onChange={(e) => set("address", e.target.value)} className="themed-input" autoComplete="street-address" />
       </Field>
     </div>
   );
@@ -475,7 +538,8 @@ function LocationForm({
       <div
         role="group"
         aria-label="Location input mode"
-        className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-700"
+        className="flex gap-1 rounded-xl p-1"
+        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)" }}
       >
         {(["coordinates", "mapslink"] as const).map((mode) => (
           <button
@@ -484,11 +548,10 @@ function LocationForm({
             onClick={() => set("mode", mode)}
             aria-pressed={value.mode === mode}
             className={[
-              "flex flex-1 items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
-              value.mode === mode
-                ? "bg-white text-brand-600 shadow-sm dark:bg-gray-600 dark:text-brand-400"
-                : "text-gray-600 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-200",
+              "flex flex-1 items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium",
+              value.mode === mode ? "btn-cyan" : "",
             ].join(" ")}
+            style={value.mode === mode ? {} : { color: "var(--text-secondary)" }}
           >
             {mode === "coordinates" ? "Lat / Long" : "Maps Link"}
           </button>
@@ -505,7 +568,7 @@ function LocationForm({
               placeholder="40.7128"
               value={value.lat}
               onChange={(e) => set("lat", e.target.value)}
-              className={input(coordsHaveError && !value.lat.trim())}
+              className="themed-input"
               aria-invalid={coordsHaveError ? true : undefined}
               aria-describedby={coordsHaveError ? "location-coords-error" : undefined}
             />
@@ -518,7 +581,7 @@ function LocationForm({
               placeholder="-74.0060"
               value={value.lng}
               onChange={(e) => set("lng", e.target.value)}
-              className={input(coordsHaveError && !value.lng.trim())}
+              className="themed-input"
               aria-invalid={coordsHaveError ? true : undefined}
               aria-describedby={coordsHaveError ? "location-coords-error" : undefined}
             />
@@ -531,7 +594,7 @@ function LocationForm({
         </div>
       ) : (
         <div className="space-y-1">
-          <label htmlFor="location-maps-link" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor="location-maps-link" className="block text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
             Google Maps link
           </label>
           <input
@@ -540,7 +603,7 @@ function LocationForm({
             placeholder="https://www.google.com/maps/place/..."
             value={value.mapsLink}
             onChange={(e) => set("mapsLink", e.target.value)}
-            className={input(mapsHasError)}
+            className="themed-input"
             aria-invalid={mapsHasError ? true : undefined}
             aria-describedby={mapsHasError ? "location-maps-error" : undefined}
           />
@@ -560,7 +623,7 @@ function LocationForm({
 function Field({ label, inputId, children }: { label: string; inputId: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label htmlFor={inputId} className="block text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
         {label}
       </label>
       {children}
@@ -570,20 +633,14 @@ function Field({ label, inputId, children }: { label: string; inputId: string; c
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
+    <div
+      className="rounded-2xl p-6"
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+      }}
+    >
       {children}
     </div>
   );
-}
-
-function input(hasError: boolean) {
-  return [
-    "w-full rounded-lg border px-3 py-2 text-sm text-gray-800 outline-none transition-colors",
-    "bg-white dark:bg-gray-700 dark:text-gray-100",
-    "placeholder:text-gray-300 dark:placeholder:text-gray-500",
-    "focus:ring-2 focus:ring-brand-500/30",
-    hasError
-      ? "border-red-300 focus:border-red-400"
-      : "border-gray-200 focus:border-brand-500 dark:border-gray-600 dark:focus:border-brand-400",
-  ].join(" ");
 }

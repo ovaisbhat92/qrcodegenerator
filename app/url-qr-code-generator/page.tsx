@@ -86,7 +86,7 @@ const faqSchema = {
 
 export default function UrlQRCodeGeneratorPage() {
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <main className="min-h-screen bg-[var(--bg-base)]">
       {/* Generator embedded at the top for immediate use */}
       <QRGenerator defaultType="url" />
 

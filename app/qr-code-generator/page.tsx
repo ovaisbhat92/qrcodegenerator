@@ -159,7 +159,7 @@ const QR_TYPES = [
 
 export default function QRCodeGeneratorHubPage() {
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <main className="min-h-screen bg-[var(--bg-base)]">
       <QRGenerator defaultType="url" />
 
       <article className="mx-auto max-w-3xl px-4 pb-20 pt-4">

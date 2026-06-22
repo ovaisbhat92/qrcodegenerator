@@ -109,7 +109,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
     set(
       "gradient",
       enabled
-        ? { type: "linear", startColor: options.fgColor, endColor: "#6366f1", rotation: 0 }
+        ? { type: "linear", startColor: options.fgColor, endColor: "#06b6d4", rotation: 0 }
         : null
     );
   }
@@ -124,16 +124,22 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
               key={name}
               type="button"
               onClick={() => onChange({ ...options, ...preset })}
-              className="group flex flex-col items-center gap-1.5 rounded-lg p-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="group flex flex-col items-center gap-1.5 rounded-lg p-2 transition-colors"
+              style={{ background: "transparent" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-input)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
               aria-label={`Apply ${name} preset`}
               title={name}
             >
               <div
-                className="h-8 w-8 rounded-md border border-gray-200 shadow-sm dark:border-gray-600"
+                className="h-8 w-8 rounded-md border border-[rgba(255,255,255,0.12)] shadow-sm"
                 style={{ backgroundColor: color }}
                 aria-hidden="true"
               />
-              <span className="text-center text-[10px] leading-tight text-gray-600 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200">
+              <span
+                className="text-center text-[10px] leading-tight"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 {name}
               </span>
             </button>
@@ -178,7 +184,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
             </button>
           ))}
         </div>
-        <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+        <p className="mt-1 text-xs" style={{ color: "var(--text-hint)" }}>
           H (30% redundancy) is best for logos. L uses less data.
         </p>
       </Section>
@@ -326,7 +332,8 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 px-4 py-3 text-sm text-gray-600 transition-colors hover:border-brand-500 hover:text-brand-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-brand-400 dark:hover:text-brand-400"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-3 text-sm transition-colors hover:border-brand-500 hover:text-brand-500"
+            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
             aria-label="Upload logo image — PNG, JPG, or SVG, maximum 1 MB"
           >
             <span aria-hidden="true">📁</span>
@@ -334,18 +341,21 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
           </button>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700">
+            <div
+              className="flex items-center gap-3 rounded-lg px-3 py-2"
+              style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={options.logo.dataUrl}
                 alt="Uploaded logo preview"
                 className="h-8 w-8 rounded object-contain"
               />
-              <span className="flex-1 text-sm text-gray-600 dark:text-gray-300">Logo uploaded</span>
+              <span className="flex-1 text-sm" style={{ color: "var(--text-secondary)" }}>Logo uploaded</span>
               <button
                 type="button"
                 onClick={removeLogo}
-                className="text-xs text-red-500 hover:text-red-700"
+                className="text-xs text-red-500 hover:text-red-400"
                 aria-label="Remove uploaded logo"
               >
                 Remove
@@ -380,7 +390,20 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
       <button
         type="button"
         onClick={onReset}
-        className="w-full rounded-lg border border-gray-200 py-2 text-sm text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-200"
+        className="w-full rounded-lg py-2 text-sm transition-colors"
+        style={{
+          background: "transparent",
+          border: "1px solid var(--border)",
+          color: "var(--text-secondary)",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(6,182,212,0.4)";
+          (e.currentTarget as HTMLButtonElement).style.color = "#06b6d4";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)";
+        }}
       >
         Reset to defaults
       </button>
@@ -393,7 +416,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-hint)" }}>
         {title}
       </p>
       {children}
@@ -422,8 +445,8 @@ function SliderRow({
   return (
     <div className="mb-2">
       <div className="mb-1 flex items-center justify-between">
-        <label htmlFor={id} className="text-sm text-gray-600 dark:text-gray-400">{label}</label>
-        <span aria-hidden="true" className="font-mono text-sm font-medium text-gray-700 dark:text-gray-200">
+        <label htmlFor={id} className="text-sm" style={{ color: "var(--text-secondary)" }}>{label}</label>
+        <span aria-hidden="true" className="font-mono text-sm font-medium" style={{ color: "var(--text-primary)" }}>
           {value}{unit}
         </span>
       </div>
@@ -435,7 +458,7 @@ function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="slider w-full accent-brand-600"
+        className="slider w-full accent-brand-500"
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
@@ -459,13 +482,14 @@ function ColorRow({
   const textId = `color-text-${label.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}`;
   return (
     <div className={`mb-2 flex items-center justify-between gap-3 ${disabled ? "pointer-events-none opacity-40" : ""}`}>
-      <label htmlFor={textId} className="text-sm text-gray-600 dark:text-gray-400">{label}</label>
+      <label htmlFor={textId} className="text-sm" style={{ color: "var(--text-secondary)" }}>{label}</label>
       <div className="flex items-center gap-2">
         <input
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-8 w-8 cursor-pointer rounded border border-gray-200 p-0.5 dark:border-gray-600"
+          className="h-8 w-8 cursor-pointer rounded border p-0.5"
+          style={{ borderColor: "var(--border)", background: "var(--bg-input)" }}
           disabled={disabled}
           aria-label={`${label} color picker`}
         />
@@ -479,7 +503,8 @@ function ColorRow({
           }}
           maxLength={7}
           disabled={disabled}
-          className="w-24 rounded border border-gray-200 bg-white px-2 py-1 font-mono text-sm focus:border-brand-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+          className="w-24 rounded border px-2 py-1 font-mono text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-colors"
+          style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-primary)" }}
         />
       </div>
     </div>
@@ -497,7 +522,7 @@ function ToggleRow({
 }) {
   return (
     <div className="mb-2 flex items-center justify-between gap-3">
-      <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+      <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{label}</span>
       <button
         type="button"
         role="switch"
@@ -506,8 +531,9 @@ function ToggleRow({
         onClick={() => onChange(!checked)}
         className={[
           "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
-          checked ? "bg-brand-600" : "bg-gray-200 dark:bg-gray-600",
+          checked ? "bg-brand-500" : "",
         ].join(" ")}
+        style={checked ? {} : { background: "var(--border)" }}
       >
         <span
           className={[
@@ -522,10 +548,8 @@ function ToggleRow({
 
 function pill(active: boolean) {
   return [
-    "rounded-lg px-3 py-1.5 text-sm font-medium border transition-all",
-    active
-      ? "bg-brand-600 text-white border-brand-600"
-      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-gray-500",
+    "rounded-lg px-3 py-1.5 text-sm font-medium",
+    active ? "btn-cyan" : "btn-ghost",
   ].join(" ");
 }
 

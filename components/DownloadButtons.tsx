@@ -71,9 +71,7 @@ export default function DownloadButtons({
   }
 
   const baseBtn =
-    "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all";
-  const solidBtn = `${baseBtn} bg-brand-600 text-white hover:bg-brand-700 dark:bg-brand-600 dark:hover:bg-brand-700`;
-  const outlineBtn = `${baseBtn} border border-brand-600 text-brand-600 hover:bg-brand-50 dark:border-brand-400 dark:text-brand-400 dark:hover:bg-brand-400/10`;
+    "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-semibold";
   const disabledCls = "opacity-40 cursor-not-allowed";
   const activeCls = "cursor-pointer";
 
@@ -81,7 +79,7 @@ export default function DownloadButtons({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-600 dark:text-gray-400">
+      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-hint)" }}>
         Download
       </p>
 
@@ -92,7 +90,7 @@ export default function DownloadButtons({
           disabled={isDisabled()}
           aria-disabled={isDisabled()}
           onClick={() => handleRasterDownload(onDownloadPNG, "PNG")}
-          className={[solidBtn, isDisabled() ? disabledCls : activeCls].join(" ")}
+          className={[baseBtn, "btn-cyan", isDisabled() ? disabledCls : activeCls].join(" ")}
         >
           <ImageIcon /> PNG
         </button>
@@ -101,7 +99,7 @@ export default function DownloadButtons({
           disabled={isDisabled()}
           aria-disabled={isDisabled()}
           onClick={() => handleRasterDownload(onDownloadJPEG, "JPEG")}
-          className={[solidBtn, isDisabled() ? disabledCls : activeCls].join(" ")}
+          className={[baseBtn, "btn-ghost", isDisabled() ? disabledCls : activeCls].join(" ")}
         >
           <ImageIcon /> JPEG
         </button>
@@ -110,7 +108,7 @@ export default function DownloadButtons({
           disabled={isDisabled()}
           aria-disabled={isDisabled()}
           onClick={() => handleRasterDownload(onDownloadWebP, "WebP")}
-          className={[solidBtn, isDisabled() ? disabledCls : activeCls].join(" ")}
+          className={[baseBtn, "btn-ghost", isDisabled() ? disabledCls : activeCls].join(" ")}
         >
           <ImageIcon /> WebP
         </button>
@@ -123,7 +121,7 @@ export default function DownloadButtons({
           disabled={isDisabled()}
           aria-disabled={isDisabled()}
           onClick={() => handleRasterDownload(onDownloadSVG, "SVG")}
-          className={[outlineBtn, isDisabled() ? disabledCls : activeCls].join(" ")}
+          className={[baseBtn, "btn-ghost", isDisabled() ? disabledCls : activeCls].join(" ")}
         >
           <CodeIcon /> SVG
         </button>
@@ -132,7 +130,7 @@ export default function DownloadButtons({
           disabled={isDisabled("pdf")}
           aria-disabled={isDisabled("pdf")}
           onClick={handlePDF}
-          className={[outlineBtn, isDisabled("pdf") ? disabledCls : activeCls].join(" ")}
+          className={[baseBtn, "btn-ghost", isDisabled("pdf") ? disabledCls : activeCls].join(" ")}
         >
           {loading === "pdf" ? <Spinner /> : <PdfIcon />}
           PDF
@@ -148,7 +146,7 @@ export default function DownloadButtons({
           }
           onClick={clipboardSupported === false ? undefined : handleCopy}
           className={[
-            outlineBtn,
+            baseBtn, "btn-ghost",
             (isDisabled("copy") || clipboardSupported === false) ? disabledCls : activeCls,
           ].join(" ")}
         >
@@ -158,7 +156,7 @@ export default function DownloadButtons({
       </div>
 
       {disabled && (
-        <p role="status" className="text-center text-xs text-gray-600 dark:text-gray-400">
+        <p role="status" className="text-center text-xs" style={{ color: "var(--text-hint)" }}>
           Enter valid content above to enable download
         </p>
       )}

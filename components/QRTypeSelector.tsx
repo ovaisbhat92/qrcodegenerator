@@ -20,7 +20,8 @@ export default function QRTypeSelector({ value, onChange }: Props) {
     <div
       role="group"
       aria-label="QR code type"
-      className="flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-700"
+      className="flex flex-wrap gap-1 rounded-xl p-1"
+      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)" }}
     >
       {TABS.map((tab) => (
         <button
@@ -30,10 +31,9 @@ export default function QRTypeSelector({ value, onChange }: Props) {
           onClick={() => onChange(tab.id)}
           className={[
             "flex flex-1 basis-[30%] items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-            value === tab.id
-              ? "bg-white text-brand-600 shadow-sm dark:bg-gray-600 dark:text-brand-400"
-              : "text-gray-600 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-200",
+            value === tab.id ? "btn-cyan" : "",
           ].join(" ")}
+          style={value === tab.id ? {} : { color: "var(--text-secondary)" }}
         >
           <span aria-hidden="true">{tab.icon}</span>
           <span>{tab.label}</span>
