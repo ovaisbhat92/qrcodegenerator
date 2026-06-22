@@ -74,6 +74,46 @@ const faqSchema = {
   ],
 };
 
+const howToSchema = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: "How to Create a QR Code",
+  description:
+    "Generate a free, custom QR code for any purpose in under a minute — no signup required.",
+  step: [
+    {
+      "@type": "HowToStep",
+      position: 1,
+      name: "Choose a QR code type",
+      text: "Select the content type that matches your use case: URL for websites, Text for plain messages, Phone for a call number, vCard for full contact details, or Location for a map pin.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 2,
+      name: "Enter your content",
+      text: "Fill in the relevant field: paste a URL, type your message, enter a phone number, complete the contact form, or provide GPS coordinates or a Google Maps share link.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 3,
+      name: "Customise the design",
+      text: "Adjust colors, dot style, corner style, size, and error correction level. Optionally upload a logo and choose a quick design preset for instant branded styling.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 4,
+      name: "Preview and test",
+      text: "Scan the live preview with your phone camera to confirm the QR code opens the correct content before downloading.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 5,
+      name: "Download your QR code",
+      text: "Click the download button for your preferred format: PNG for digital use, SVG for scalable print artwork, JPEG or WebP for web images, or PDF for a print-ready A4 sheet.",
+    },
+  ],
+};
+
 const QR_TYPES = [
   {
     href: "/url-qr-code-generator",
@@ -284,6 +324,10 @@ export default function QRCodeGeneratorHubPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
       />
     </main>
   );

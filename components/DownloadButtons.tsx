@@ -81,7 +81,7 @@ export default function DownloadButtons({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-600 dark:text-gray-400">
         Download
       </p>
 
@@ -90,6 +90,7 @@ export default function DownloadButtons({
         <button
           type="button"
           disabled={isDisabled()}
+          aria-disabled={isDisabled()}
           onClick={() => handleRasterDownload(onDownloadPNG, "PNG")}
           className={[solidBtn, isDisabled() ? disabledCls : activeCls].join(" ")}
         >
@@ -98,6 +99,7 @@ export default function DownloadButtons({
         <button
           type="button"
           disabled={isDisabled()}
+          aria-disabled={isDisabled()}
           onClick={() => handleRasterDownload(onDownloadJPEG, "JPEG")}
           className={[solidBtn, isDisabled() ? disabledCls : activeCls].join(" ")}
         >
@@ -106,6 +108,7 @@ export default function DownloadButtons({
         <button
           type="button"
           disabled={isDisabled()}
+          aria-disabled={isDisabled()}
           onClick={() => handleRasterDownload(onDownloadWebP, "WebP")}
           className={[solidBtn, isDisabled() ? disabledCls : activeCls].join(" ")}
         >
@@ -118,6 +121,7 @@ export default function DownloadButtons({
         <button
           type="button"
           disabled={isDisabled()}
+          aria-disabled={isDisabled()}
           onClick={() => handleRasterDownload(onDownloadSVG, "SVG")}
           className={[outlineBtn, isDisabled() ? disabledCls : activeCls].join(" ")}
         >
@@ -126,6 +130,7 @@ export default function DownloadButtons({
         <button
           type="button"
           disabled={isDisabled("pdf")}
+          aria-disabled={isDisabled("pdf")}
           onClick={handlePDF}
           className={[outlineBtn, isDisabled("pdf") ? disabledCls : activeCls].join(" ")}
         >
@@ -135,8 +140,13 @@ export default function DownloadButtons({
         <button
           type="button"
           disabled={isDisabled("copy") || clipboardSupported === false}
+          aria-disabled={isDisabled("copy") || clipboardSupported === false}
+          aria-label={
+            clipboardSupported === false
+              ? "Copy to clipboard — not supported in this browser"
+              : "Copy QR code image to clipboard"
+          }
           onClick={clipboardSupported === false ? undefined : handleCopy}
-          title={clipboardSupported === false ? "Clipboard image copy isn't supported in this browser" : undefined}
           className={[
             outlineBtn,
             (isDisabled("copy") || clipboardSupported === false) ? disabledCls : activeCls,
@@ -148,7 +158,7 @@ export default function DownloadButtons({
       </div>
 
       {disabled && (
-        <p className="text-center text-xs text-gray-400 dark:text-gray-500">
+        <p role="status" className="text-center text-xs text-gray-600 dark:text-gray-400">
           Enter valid content above to enable download
         </p>
       )}
@@ -158,7 +168,7 @@ export default function DownloadButtons({
 
 function Spinner() {
   return (
-    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
     </svg>
@@ -167,7 +177,7 @@ function Spinner() {
 
 function ImageIcon() {
   return (
-    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
       <polyline points="21 15 16 10 5 21" strokeLinecap="round" strokeLinejoin="round" />
@@ -177,7 +187,7 @@ function ImageIcon() {
 
 function CodeIcon() {
   return (
-    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <polyline points="16 18 22 12 16 6" strokeLinecap="round" strokeLinejoin="round" />
       <polyline points="8 6 2 12 8 18" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -186,7 +196,7 @@ function CodeIcon() {
 
 function PdfIcon() {
   return (
-    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
       <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
       <line x1="9" y1="15" x2="15" y2="15" strokeLinecap="round" />
@@ -197,7 +207,7 @@ function PdfIcon() {
 
 function CopyIcon() {
   return (
-    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <rect x="9" y="9" width="13" height="13" rx="2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>

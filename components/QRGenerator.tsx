@@ -222,7 +222,7 @@ function DarkModeToggle() {
 
 function SunIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <circle cx="12" cy="12" r="5" />
       <line x1="12" y1="1" x2="12" y2="3" strokeLinecap="round" />
       <line x1="12" y1="21" x2="12" y2="23" strokeLinecap="round" />
@@ -238,7 +238,7 @@ function SunIcon() {
 
 function MoonIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -263,25 +263,31 @@ function UrlForm({
   onChange: (v: string) => void;
   validation: ValidationResult;
 }) {
+  const hasError = value !== "" && !validation.valid && !!validation.error;
   return (
     <div className="space-y-1">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label htmlFor="url-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         Website URL
       </label>
       <input
+        id="url-input"
         type="url"
         inputMode="url"
         placeholder="https://example.com"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={input(value !== "" && !validation.valid)}
+        className={input(hasError)}
         autoComplete="url"
+        aria-invalid={hasError ? true : undefined}
+        aria-describedby={hasError ? "url-input-error" : undefined}
       />
-      {value && !validation.valid && validation.error && (
-        <p className="text-xs text-red-500">{validation.error}</p>
+      {hasError && (
+        <p id="url-input-error" role="alert" className="text-xs text-red-500">
+          {validation.error}
+        </p>
       )}
       {value && validation.valid && !value.match(/^https?:\/\//i) && (
-        <p className="text-xs text-gray-400">https:// will be added automatically</p>
+        <p className="text-xs text-gray-600 dark:text-gray-400">https:// will be added automatically</p>
       )}
     </div>
   );
@@ -298,27 +304,43 @@ function TextForm({
   onChange: (v: string) => void;
   validation: ValidationResult;
 }) {
+  const hasError = value !== "" && !validation.valid && !!validation.error;
+  const describedBy = [
+    hasError ? "text-input-error" : "",
+    validation.warning ? "text-input-warning" : "",
+  ].filter(Boolean).join(" ") || undefined;
+
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Text content</label>
-        <span className={`text-xs ${value.length > 1800 ? "text-red-500" : "text-gray-400"}`}>
+        <label htmlFor="text-input" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Text content
+        </label>
+        <span
+          aria-hidden="true"
+          className={`text-xs ${value.length > 1800 ? "text-red-500" : "text-gray-600 dark:text-gray-400"}`}
+        >
           {value.length}/2000
         </span>
       </div>
       <textarea
+        id="text-input"
         rows={4}
         placeholder="Enter any text…"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         maxLength={2000}
-        className={`${input(value !== "" && !validation.valid)} resize-none`}
+        className={`${input(hasError)} resize-none`}
+        aria-invalid={hasError ? true : undefined}
+        aria-describedby={describedBy}
       />
-      {value && !validation.valid && validation.error && (
-        <p className="text-xs text-red-500">{validation.error}</p>
+      {hasError && (
+        <p id="text-input-error" role="alert" className="text-xs text-red-500">
+          {validation.error}
+        </p>
       )}
       {validation.warning && (
-        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+        <p id="text-input-warning" className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
           ⚠️ {validation.warning}
         </p>
       )}
@@ -337,22 +359,28 @@ function PhoneForm({
   onChange: (v: string) => void;
   validation: ValidationResult;
 }) {
+  const hasError = value !== "" && !validation.valid && !!validation.error;
   return (
     <div className="space-y-1">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label htmlFor="phone-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         Phone number
       </label>
       <input
+        id="phone-input"
         type="tel"
         inputMode="tel"
         placeholder="+1 555-123-4567"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={input(value !== "" && !validation.valid)}
+        className={input(hasError)}
         autoComplete="tel"
+        aria-invalid={hasError ? true : undefined}
+        aria-describedby={hasError ? "phone-input-error" : undefined}
       />
-      {value && !validation.valid && validation.error && (
-        <p className="text-xs text-red-500">{validation.error}</p>
+      {hasError && (
+        <p id="phone-input-error" role="alert" className="text-xs text-red-500">
+          {validation.error}
+        </p>
       )}
     </div>
   );
@@ -372,45 +400,53 @@ function VCardForm({
   const set = <K extends keyof VCardInput>(key: K, val: VCardInput[K]) =>
     onChange({ ...value, [key]: val });
 
+  const nameHasError = !validation.valid && !value.fullName.trim();
+
   return (
     <div className="space-y-3">
-      <Field label="Full name *">
+      <Field label="Full name *" inputId="vcard-fullname">
         <input
+          id="vcard-fullname"
           type="text"
           placeholder="Jane Smith"
           value={value.fullName}
           onChange={(e) => set("fullName", e.target.value)}
-          className={input(!validation.valid && !value.fullName.trim())}
+          className={input(nameHasError)}
           autoComplete="name"
+          aria-invalid={nameHasError ? true : undefined}
+          aria-describedby={nameHasError ? "vcard-fullname-error" : undefined}
+          aria-required="true"
         />
-        {!validation.valid && !value.fullName.trim() && validation.error && (
-          <p className="text-xs text-red-500">{validation.error}</p>
+        {nameHasError && validation.error && (
+          <p id="vcard-fullname-error" role="alert" className="text-xs text-red-500">
+            {validation.error}
+          </p>
         )}
       </Field>
-      <Field label="Phone">
-        <input type="tel" placeholder="+1 555-123-4567" value={value.phone}
+      <Field label="Phone" inputId="vcard-phone">
+        <input id="vcard-phone" type="tel" placeholder="+1 555-123-4567" value={value.phone}
           onChange={(e) => set("phone", e.target.value)} className={input(false)} autoComplete="tel" />
       </Field>
-      <Field label="Email">
-        <input type="email" placeholder="jane@example.com" value={value.email}
+      <Field label="Email" inputId="vcard-email">
+        <input id="vcard-email" type="email" placeholder="jane@example.com" value={value.email}
           onChange={(e) => set("email", e.target.value)} className={input(false)} autoComplete="email" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Company">
-          <input type="text" placeholder="Acme Corp" value={value.company}
+        <Field label="Company" inputId="vcard-company">
+          <input id="vcard-company" type="text" placeholder="Acme Corp" value={value.company}
             onChange={(e) => set("company", e.target.value)} className={input(false)} autoComplete="organization" />
         </Field>
-        <Field label="Job title">
-          <input type="text" placeholder="Product Manager" value={value.jobTitle}
+        <Field label="Job title" inputId="vcard-jobtitle">
+          <input id="vcard-jobtitle" type="text" placeholder="Product Manager" value={value.jobTitle}
             onChange={(e) => set("jobTitle", e.target.value)} className={input(false)} autoComplete="organization-title" />
         </Field>
       </div>
-      <Field label="Website">
-        <input type="url" placeholder="https://janesmith.com" value={value.website}
+      <Field label="Website" inputId="vcard-website">
+        <input id="vcard-website" type="url" placeholder="https://janesmith.com" value={value.website}
           onChange={(e) => set("website", e.target.value)} className={input(false)} autoComplete="url" />
       </Field>
-      <Field label="Address">
-        <input type="text" placeholder="123 Main St, New York, NY 10001" value={value.address}
+      <Field label="Address" inputId="vcard-address">
+        <input id="vcard-address" type="text" placeholder="123 Main St, New York, NY 10001" value={value.address}
           onChange={(e) => set("address", e.target.value)} className={input(false)} autoComplete="street-address" />
       </Field>
     </div>
@@ -431,19 +467,27 @@ function LocationForm({
   const set = <K extends keyof LocationInput>(key: K, val: LocationInput[K]) =>
     onChange({ ...value, [key]: val });
 
+  const coordsHaveError = !validation.valid && !!validation.error;
+  const mapsHasError = value.mapsLink !== "" && !validation.valid;
+
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-700">
+      <div
+        role="group"
+        aria-label="Location input mode"
+        className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-700"
+      >
         {(["coordinates", "mapslink"] as const).map((mode) => (
           <button
             key={mode}
             type="button"
             onClick={() => set("mode", mode)}
+            aria-pressed={value.mode === mode}
             className={[
               "flex flex-1 items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
               value.mode === mode
                 ? "bg-white text-brand-600 shadow-sm dark:bg-gray-600 dark:text-brand-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200",
+                : "text-gray-600 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-200",
             ].join(" ")}
           >
             {mode === "coordinates" ? "Lat / Long" : "Maps Link"}
@@ -453,34 +497,57 @@ function LocationForm({
 
       {value.mode === "coordinates" ? (
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Latitude">
-            <input type="text" inputMode="decimal" placeholder="40.7128" value={value.lat}
+          <Field label="Latitude" inputId="location-lat">
+            <input
+              id="location-lat"
+              type="text"
+              inputMode="decimal"
+              placeholder="40.7128"
+              value={value.lat}
               onChange={(e) => set("lat", e.target.value)}
-              className={input(!validation.valid && !value.lat.trim())} />
+              className={input(coordsHaveError && !value.lat.trim())}
+              aria-invalid={coordsHaveError ? true : undefined}
+              aria-describedby={coordsHaveError ? "location-coords-error" : undefined}
+            />
           </Field>
-          <Field label="Longitude">
-            <input type="text" inputMode="decimal" placeholder="-74.0060" value={value.lng}
+          <Field label="Longitude" inputId="location-lng">
+            <input
+              id="location-lng"
+              type="text"
+              inputMode="decimal"
+              placeholder="-74.0060"
+              value={value.lng}
               onChange={(e) => set("lng", e.target.value)}
-              className={input(!validation.valid && !value.lng.trim())} />
+              className={input(coordsHaveError && !value.lng.trim())}
+              aria-invalid={coordsHaveError ? true : undefined}
+              aria-describedby={coordsHaveError ? "location-coords-error" : undefined}
+            />
           </Field>
-          {!validation.valid && validation.error && (
-            <p className="col-span-2 text-xs text-red-500">{validation.error}</p>
+          {coordsHaveError && (
+            <p id="location-coords-error" role="alert" className="col-span-2 text-xs text-red-500">
+              {validation.error}
+            </p>
           )}
         </div>
       ) : (
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor="location-maps-link" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Google Maps link
           </label>
           <input
+            id="location-maps-link"
             type="url"
             placeholder="https://www.google.com/maps/place/..."
             value={value.mapsLink}
             onChange={(e) => set("mapsLink", e.target.value)}
-            className={input(value.mapsLink !== "" && !validation.valid)}
+            className={input(mapsHasError)}
+            aria-invalid={mapsHasError ? true : undefined}
+            aria-describedby={mapsHasError ? "location-maps-error" : undefined}
           />
-          {value.mapsLink && !validation.valid && validation.error && (
-            <p className="text-xs text-red-500">{validation.error}</p>
+          {mapsHasError && validation.error && (
+            <p id="location-maps-error" role="alert" className="text-xs text-red-500">
+              {validation.error}
+            </p>
           )}
         </div>
       )}
@@ -490,10 +557,12 @@ function LocationForm({
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, inputId, children }: { label: string; inputId: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+      <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        {label}
+      </label>
       {children}
     </div>
   );

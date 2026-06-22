@@ -7,9 +7,8 @@ import {
   useImperativeHandle,
   useMemo,
 } from "react";
-import type { CustomizationOptions, CornerStyle } from "@/types/qr";
+import type { CustomizationOptions, CornerStyle, QRType } from "@/types/qr";
 import { downloadPNG, downloadSVG, downloadJPEG, downloadWebP, getFilename } from "@/lib/download";
-import type { QRType } from "@/types/qr";
 
 export interface QRPreviewHandle {
   downloadPNG: () => void;
@@ -33,6 +32,14 @@ interface Props {
   qrType: QRType;
   options: CustomizationOptions;
 }
+
+const QR_TYPE_LABELS: Record<QRType, string> = {
+  url: "website URL",
+  text: "plain text",
+  phone: "phone number",
+  vcard: "contact card",
+  location: "location",
+};
 
 // Module-level cache so the dynamic import only happens once.
 let qrModulePromise: Promise<{ default: unknown }> | null = null;
@@ -201,8 +208,14 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
           }
         : { backgroundColor: "#f9fafb" };
 
+    const ariaLabel = data
+      ? `QR code preview for ${QR_TYPE_LABELS[qrType]}`
+      : "QR code preview — enter content above to generate";
+
     return (
       <div
+        role="img"
+        aria-label={ariaLabel}
         className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700"
         style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE, ...bgStyle }}
       >
@@ -239,6 +252,7 @@ function Placeholder() {
         fill="none"
         stroke="currentColor"
         strokeWidth={1.5}
+        aria-hidden="true"
       >
         <rect x="4"  y="4"  width="24" height="24" rx="2" />
         <rect x="36" y="4"  width="24" height="24" rx="2" />

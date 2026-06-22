@@ -125,13 +125,15 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
               type="button"
               onClick={() => onChange({ ...options, ...preset })}
               className="group flex flex-col items-center gap-1.5 rounded-lg p-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+              aria-label={`Apply ${name} preset`}
               title={name}
             >
               <div
                 className="h-8 w-8 rounded-md border border-gray-200 shadow-sm dark:border-gray-600"
                 style={{ backgroundColor: color }}
+                aria-hidden="true"
               />
-              <span className="text-center text-[10px] leading-tight text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200">
+              <span className="text-center text-[10px] leading-tight text-gray-600 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200">
                 {name}
               </span>
             </button>
@@ -163,19 +165,20 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
 
       {/* ── Error Correction ── */}
       <Section title="Error Correction">
-        <div className="flex gap-2">
+        <div role="group" aria-label="Error correction level" className="flex gap-2">
           {(["L", "M", "Q", "H"] as ErrorCorrection[]).map((ec) => (
             <button
               key={ec}
               type="button"
               onClick={() => set("errorCorrection", ec)}
+              aria-pressed={options.errorCorrection === ec}
               className={pill(options.errorCorrection === ec)}
             >
               {ec}
             </button>
           ))}
         </div>
-        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+        <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
           H (30% redundancy) is best for logos. L uses less data.
         </p>
       </Section>
@@ -202,7 +205,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
 
       {/* ── Dot Style ── */}
       <Section title="Dot Style">
-        <div className="grid grid-cols-2 gap-2">
+        <div role="group" aria-label="Dot style" className="grid grid-cols-2 gap-2">
           {(
             [
               ["square",        "Square"],
@@ -215,6 +218,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
               key={id}
               type="button"
               onClick={() => set("dotStyle", id)}
+              aria-pressed={options.dotStyle === id}
               className={pill(options.dotStyle === id)}
             >
               {label}
@@ -225,7 +229,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
 
       {/* ── Corner Style ── */}
       <Section title="Corner / Eye Style">
-        <div className="grid grid-cols-3 gap-2 mb-3">
+        <div role="group" aria-label="Corner style" className="grid grid-cols-3 gap-2 mb-3">
           {(
             [
               ["square",  "Square"],
@@ -237,6 +241,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
               key={id}
               type="button"
               onClick={() => set("cornerStyle", id)}
+              aria-pressed={options.cornerStyle === id}
               className={pill(options.cornerStyle === id)}
             >
               {label}
@@ -259,7 +264,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
         />
         {gradientEnabled && options.gradient && (
           <div className="mt-3 space-y-3">
-            <div className="flex gap-2">
+            <div role="group" aria-label="Gradient type" className="flex gap-2">
               {(["linear", "radial"] as GradientType[]).map((t) => (
                 <button
                   key={t}
@@ -267,6 +272,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
                   onClick={() =>
                     set("gradient", { ...options.gradient!, type: t })
                   }
+                  aria-pressed={options.gradient!.type === t}
                   className={pill(options.gradient!.type === t)}
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -306,29 +312,33 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
 
       {/* ── Logo ── */}
       <Section title="Logo (optional)">
+        {/* Hidden file input — triggered programmatically */}
         <input
           ref={fileInputRef}
           type="file"
           accept="image/png,image/jpeg,image/svg+xml"
           className="hidden"
           onChange={handleLogoUpload}
-          id="logo-upload"
+          aria-hidden="true"
+          tabIndex={-1}
         />
         {!options.logo ? (
-          <label
-            htmlFor="logo-upload"
-            className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500 transition-colors hover:border-brand-500 hover:text-brand-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-brand-400 dark:hover:text-brand-400"
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 px-4 py-3 text-sm text-gray-600 transition-colors hover:border-brand-500 hover:text-brand-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-brand-400 dark:hover:text-brand-400"
+            aria-label="Upload logo image — PNG, JPG, or SVG, maximum 1 MB"
           >
-            <span>📁</span>
+            <span aria-hidden="true">📁</span>
             <span>Upload PNG / JPG / SVG (max 1 MB)</span>
-          </label>
+          </button>
         ) : (
           <div className="space-y-3">
             <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={options.logo.dataUrl}
-                alt="Logo preview"
+                alt="Uploaded logo preview"
                 className="h-8 w-8 rounded object-contain"
               />
               <span className="flex-1 text-sm text-gray-600 dark:text-gray-300">Logo uploaded</span>
@@ -336,6 +346,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
                 type="button"
                 onClick={removeLogo}
                 className="text-xs text-red-500 hover:text-red-700"
+                aria-label="Remove uploaded logo"
               >
                 Remove
               </button>
@@ -369,7 +380,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
       <button
         type="button"
         onClick={onReset}
-        className="w-full rounded-lg border border-gray-200 py-2 text-sm text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-200"
+        className="w-full rounded-lg border border-gray-200 py-2 text-sm text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-200"
       >
         Reset to defaults
       </button>
@@ -382,7 +393,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
         {title}
       </p>
       {children}
@@ -407,15 +418,17 @@ function SliderRow({
   unit: string;
   onChange: (v: number) => void;
 }) {
+  const id = `slider-${label.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}`;
   return (
     <div className="mb-2">
       <div className="mb-1 flex items-center justify-between">
-        <label className="text-sm text-gray-600 dark:text-gray-400">{label}</label>
-        <span className="font-mono text-sm font-medium text-gray-700 dark:text-gray-200">
+        <label htmlFor={id} className="text-sm text-gray-600 dark:text-gray-400">{label}</label>
+        <span aria-hidden="true" className="font-mono text-sm font-medium text-gray-700 dark:text-gray-200">
           {value}{unit}
         </span>
       </div>
       <input
+        id={id}
         type="range"
         min={min}
         max={max}
@@ -423,6 +436,10 @@ function SliderRow({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="slider w-full accent-brand-600"
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        aria-valuetext={`${value}${unit}`}
       />
     </div>
   );
@@ -439,9 +456,10 @@ function ColorRow({
   onChange: (v: string) => void;
   disabled?: boolean;
 }) {
+  const textId = `color-text-${label.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}`;
   return (
     <div className={`mb-2 flex items-center justify-between gap-3 ${disabled ? "pointer-events-none opacity-40" : ""}`}>
-      <label className="text-sm text-gray-600 dark:text-gray-400">{label}</label>
+      <label htmlFor={textId} className="text-sm text-gray-600 dark:text-gray-400">{label}</label>
       <div className="flex items-center gap-2">
         <input
           type="color"
@@ -449,8 +467,10 @@ function ColorRow({
           onChange={(e) => onChange(e.target.value)}
           className="h-8 w-8 cursor-pointer rounded border border-gray-200 p-0.5 dark:border-gray-600"
           disabled={disabled}
+          aria-label={`${label} color picker`}
         />
         <input
+          id={textId}
           type="text"
           value={value}
           onChange={(e) => {
@@ -482,9 +502,10 @@ function ToggleRow({
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={label}
         onClick={() => onChange(!checked)}
         className={[
-          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none",
+          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
           checked ? "bg-brand-600" : "bg-gray-200 dark:bg-gray-600",
         ].join(" ")}
       >
