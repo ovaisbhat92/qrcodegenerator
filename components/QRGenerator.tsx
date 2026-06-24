@@ -110,6 +110,7 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
   }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput]);
 
   const isDisabled = !validation?.valid || !payload;
+  const [customizationOpen, setCustomizationOpen] = useState(false);
 
   // Fire qr_generated 1.5 s after the payload stabilises — avoids a flood
   // of events while the user is still typing. Structural params only; no content.
@@ -215,16 +216,44 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
             </div>
           </Card>
 
-          <Card>
-            <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-hint)" }}>
-              Customization
-            </h2>
-            <CustomizationPanel
-              options={customization}
-              onChange={setCustomization}
-              onReset={resetToDefaults}
-            />
-          </Card>
+          <div
+            className="rounded-2xl"
+            style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}
+          >
+            <button
+              type="button"
+              onClick={() => setCustomizationOpen((o) => !o)}
+              aria-expanded={customizationOpen}
+              aria-controls="customization-panel"
+              className="flex w-full items-center justify-between px-6 py-4"
+            >
+              <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-hint)" }}>
+                Customization
+              </h2>
+              <span className="flex items-center gap-1.5 text-sm font-medium" style={{ color: "#06b6d4" }}>
+                Customize QR Code
+                <ChevronDownIcon
+                  className={`h-4 w-4 transition-transform duration-300${customizationOpen ? " rotate-180" : ""}`}
+                />
+              </span>
+            </button>
+            <div
+              id="customization-panel"
+              style={{
+                maxHeight: customizationOpen ? "2400px" : "0px",
+                overflow: "hidden",
+                transition: "max-height 0.4s ease",
+              }}
+            >
+              <div className="px-6 pb-6 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
+                <CustomizationPanel
+                  options={customization}
+                  onChange={setCustomization}
+                  onReset={resetToDefaults}
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ── Right column: sticky preview + download ── */}
@@ -323,6 +352,14 @@ function ShieldIcon() {
   return (
     <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+      <polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
