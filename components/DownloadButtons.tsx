@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { trackQRDownloaded, trackQRCopied } from "@/lib/analytics";
 
 interface Props {
+  qrType: string;
   onDownloadPNG: () => void;
   onDownloadSVG: () => void;
   onDownloadJPEG: () => void;
@@ -16,6 +18,7 @@ interface Props {
 type LoadingKey = "pdf" | "copy";
 
 export default function DownloadButtons({
+  qrType,
   onDownloadPNG,
   onDownloadSVG,
   onDownloadJPEG,
@@ -39,6 +42,7 @@ export default function DownloadButtons({
     if (disabled) return;
     fn();
     toast.success(`${label} saved`, { id: `dl-${label}` });
+    trackQRDownloaded({ qr_type: qrType, file_format: label.toLowerCase() });
   }
 
   async function handlePDF() {
@@ -47,6 +51,7 @@ export default function DownloadButtons({
     try {
       await onDownloadPDF();
       toast.success("PDF saved", { id: "dl-pdf" });
+      trackQRDownloaded({ qr_type: qrType, file_format: "pdf" });
     } catch {
       toast.error("PDF export failed", { id: "dl-pdf" });
     } finally {
@@ -60,6 +65,7 @@ export default function DownloadButtons({
     try {
       await onCopyToClipboard();
       toast.success("QR image copied!", { id: "clipboard" });
+      trackQRCopied({ qr_type: qrType });
     } catch (err) {
       const msg = err instanceof Error && err.message === "unsupported"
         ? "Clipboard image copy isn't supported in this browser"

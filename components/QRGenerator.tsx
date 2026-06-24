@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { trackQRGenerated } from "@/lib/analytics";
 import { useTheme } from "next-themes";
 import type { QRType, CustomizationOptions, VCardInput, LocationInput } from "@/types/qr";
 import { DEFAULT_CUSTOMIZATION } from "@/types/qr";
@@ -109,6 +110,25 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
   }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput]);
 
   const isDisabled = !validation?.valid || !payload;
+
+  // Fire qr_generated 1.5 s after the payload stabilises — avoids a flood
+  // of events while the user is still typing. Structural params only; no content.
+  const prevPayloadRef = useRef("");
+  useEffect(() => {
+    if (!payload) return;
+    const timer = setTimeout(() => {
+      if (payload === prevPayloadRef.current) return;
+      prevPayloadRef.current = payload;
+      trackQRGenerated({
+        qr_type: qrType,
+        has_logo: customization.logo !== null,
+        has_gradient: customization.gradient !== null,
+        dot_style: customization.dotStyle,
+        error_correction: customization.errorCorrection,
+      });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [payload, qrType, customization]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -232,6 +252,7 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
 
             <Card>
               <DownloadButtons
+                qrType={qrType}
                 onDownloadPNG={() => previewRef.current?.downloadPNG()}
                 onDownloadSVG={() => previewRef.current?.downloadSVG()}
                 onDownloadJPEG={() => previewRef.current?.downloadJPEG()}

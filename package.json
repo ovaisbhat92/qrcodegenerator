@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@next/third-parties": "^16.2.9",
     "jspdf": "^4.2.1",
     "next": "^14.2",
     "next-themes": "^0.4.6",

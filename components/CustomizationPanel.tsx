@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { trackPresetSelected, trackLogoUploaded } from "@/lib/analytics";
 import type {
   CustomizationOptions,
   DotStyle,
@@ -94,6 +95,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
       set("logo", { dataUrl, size: 0.3, padding: true });
+      trackLogoUploaded({ file_type: file.type });
     };
     reader.readAsDataURL(file);
   }
@@ -123,7 +125,7 @@ export default function CustomizationPanel({ options, onChange, onReset }: Props
             <button
               key={name}
               type="button"
-              onClick={() => onChange({ ...options, ...preset })}
+              onClick={() => { onChange({ ...options, ...preset }); trackPresetSelected({ preset_name: name.toLowerCase() }); }}
               className="group flex flex-col items-center gap-1.5 rounded-lg p-2 transition-colors"
               style={{ background: "transparent" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-input)"; }}
