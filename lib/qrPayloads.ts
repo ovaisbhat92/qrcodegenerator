@@ -1,4 +1,4 @@
-import type { VCardInput, LocationInput } from "@/types/qr";
+import type { VCardInput, LocationInput, UpiInput } from "@/types/qr";
 
 // Strip ASCII control characters (U+0000–U+001F, U+007F) to prevent QR data corruption.
 function stripControlChars(value: string): string {
@@ -54,4 +54,12 @@ export function generateLocationPayload(location: LocationInput): string {
     return location.mapsLink.trim();
   }
   return `https://www.google.com/maps?q=${location.lat.trim()},${location.lng.trim()}`;
+}
+
+export function generateUpiPayload(upi: UpiInput): string {
+  let url = `upi://pay?pa=${upi.upiId.trim()}&pn=${encodeURIComponent(upi.payeeName.trim())}`;
+  if (upi.amount.trim()) url += `&am=${upi.amount.trim()}`;
+  url += "&cu=INR";
+  if (upi.note.trim()) url += `&tn=${encodeURIComponent(upi.note.trim())}`;
+  return url;
 }

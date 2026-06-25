@@ -5,8 +5,10 @@ import {
   generatePhonePayload,
   generateVCardPayload,
   generateLocationPayload,
+  generateUpiPayload,
 } from "../qrPayloads";
-import type { VCardInput, LocationInput } from "@/types/qr";
+import { validateUpi } from "../validators";
+import type { VCardInput, LocationInput, UpiInput } from "@/types/qr";
 
 // ── generateUrlPayload ────────────────────────────────────────────────────────
 
@@ -194,5 +196,82 @@ describe("generateLocationPayload", () => {
     };
     const result = generateLocationPayload(input);
     expect(result).toBe("https://www.google.com/maps?q=51.5074,-0.1278");
+  });
+});
+
+// ── generateUpiPayload ────────────────────────────────────────────────────────
+
+const BASE_UPI: UpiInput = {
+  upiId: "test@upi",
+  payeeName: "Test User",
+  amount: "100",
+  note: "Payment",
+};
+
+describe("generateUpiPayload", () => {
+  it("generates correct URL with all fields", () => {
+    const result = generateUpiPayload(BASE_UPI);
+    expect(result).toBe(
+      "upi://pay?pa=test@upi&pn=Test%20User&am=100&cu=INR&tn=Payment"
+    );
+  });
+
+  it("omits am and tn when amount and note are empty", () => {
+    const result = generateUpiPayload({ ...BASE_UPI, amount: "", note: "" });
+    expect(result).toBe("upi://pay?pa=test@upi&pn=Test%20User&cu=INR");
+    expect(result).not.toContain("&am=");
+    expect(result).not.toContain("&tn=");
+  });
+
+  it("omits am but includes tn when only note is provided", () => {
+    const result = generateUpiPayload({ ...BASE_UPI, amount: "" });
+    expect(result).toContain("&tn=Payment");
+    expect(result).not.toContain("&am=");
+  });
+
+  it("encodes spaces in payee name", () => {
+    const result = generateUpiPayload({ ...BASE_UPI, payeeName: "My Shop" });
+    expect(result).toContain("pn=My%20Shop");
+  });
+
+  it("encodes special characters in note", () => {
+    const result = generateUpiPayload({ ...BASE_UPI, note: "Hello & World" });
+    expect(result).toContain("tn=Hello%20%26%20World");
+  });
+});
+
+// ── validateUpi ───────────────────────────────────────────────────────────────
+
+describe("validateUpi", () => {
+  it("passes validation with all fields valid", () => {
+    expect(validateUpi(BASE_UPI).valid).toBe(true);
+  });
+
+  it("passes validation when amount and note are empty", () => {
+    expect(validateUpi({ ...BASE_UPI, amount: "", note: "" }).valid).toBe(true);
+  });
+
+  it("fails when UPI ID is empty", () => {
+    const r = validateUpi({ ...BASE_UPI, upiId: "" });
+    expect(r.valid).toBe(false);
+    expect(r.error).toMatch(/required/i);
+  });
+
+  it("fails when UPI ID has no @ symbol", () => {
+    const r = validateUpi({ ...BASE_UPI, upiId: "invalididformat" });
+    expect(r.valid).toBe(false);
+    expect(r.error).toMatch(/@/);
+  });
+
+  it("fails when amount is negative", () => {
+    const r = validateUpi({ ...BASE_UPI, amount: "-50" });
+    expect(r.valid).toBe(false);
+    expect(r.error).toMatch(/positive/i);
+  });
+
+  it("fails when payee name is empty", () => {
+    const r = validateUpi({ ...BASE_UPI, payeeName: "" });
+    expect(r.valid).toBe(false);
+    expect(r.error).toMatch(/payee/i);
   });
 });

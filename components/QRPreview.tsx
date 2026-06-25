@@ -39,6 +39,7 @@ const QR_TYPE_LABELS: Record<QRType, string> = {
   phone: "phone number",
   vcard: "contact card",
   location: "location",
+  upi: "UPI payment",
 };
 
 // Module-level cache so the dynamic import only happens once.

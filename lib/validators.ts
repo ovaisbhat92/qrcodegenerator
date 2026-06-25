@@ -1,4 +1,4 @@
-import type { VCardInput, LocationInput } from "@/types/qr";
+import type { VCardInput, LocationInput, UpiInput } from "@/types/qr";
 
 export interface ValidationResult {
   valid: boolean;
@@ -56,6 +56,22 @@ export function validatePhone(phone: string): ValidationResult {
 export function validateVCard(vcard: VCardInput): ValidationResult {
   if (!vcard.fullName.trim()) {
     return { valid: false, error: "Full name is required" };
+  }
+  return { valid: true };
+}
+
+export function validateUpi(upi: UpiInput): ValidationResult {
+  const id = upi.upiId.trim();
+  if (!id) return { valid: false, error: "UPI ID is required" };
+  if (!id.includes("@")) {
+    return { valid: false, error: "UPI ID must be in the format name@upi (e.g. name@okaxis)" };
+  }
+  if (!upi.payeeName.trim()) return { valid: false, error: "Payee name is required" };
+  if (upi.amount.trim()) {
+    const amt = parseFloat(upi.amount.trim());
+    if (isNaN(amt) || amt <= 0) {
+      return { valid: false, error: "Amount must be a positive number" };
+    }
   }
   return { valid: true };
 }

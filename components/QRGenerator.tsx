@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { trackQRGenerated } from "@/lib/analytics";
 import { useTheme } from "next-themes";
-import type { QRType, CustomizationOptions, VCardInput, LocationInput } from "@/types/qr";
+import type { QRType, CustomizationOptions, VCardInput, LocationInput, UpiInput } from "@/types/qr";
 import { DEFAULT_CUSTOMIZATION } from "@/types/qr";
 import {
   generateUrlPayload,
@@ -11,6 +11,7 @@ import {
   generatePhonePayload,
   generateVCardPayload,
   generateLocationPayload,
+  generateUpiPayload,
 } from "@/lib/qrPayloads";
 import {
   validateUrl,
@@ -18,7 +19,9 @@ import {
   validatePhone,
   validateVCard,
   validateLocation,
+  validateUpi,
 } from "@/lib/validators";
+import QRScanner from "@/components/QRScanner";
 import QRTypeSelector from "@/components/QRTypeSelector";
 import CustomizationPanel from "@/components/CustomizationPanel";
 import QRPreview, { type QRPreviewHandle } from "@/components/QRPreview";
@@ -33,6 +36,10 @@ const DEFAULT_VCARD: VCardInput = {
 
 const DEFAULT_LOCATION: LocationInput = {
   mode: "coordinates", lat: "", lng: "", mapsLink: "",
+};
+
+const DEFAULT_UPI: UpiInput = {
+  upiId: "", payeeName: "", amount: "", note: "",
 };
 
 // ── localStorage persistence for customization ───────────────────────────────
@@ -73,13 +80,21 @@ function usePersistedCustomization() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRType }) {
+export default function QRGenerator({
+  defaultType = "url",
+  defaultMode = "generate",
+}: {
+  defaultType?: QRType;
+  defaultMode?: "generate" | "scan";
+}) {
+  const [appMode, setAppMode] = useState<"generate" | "scan">(defaultMode);
   const [qrType, setQrType] = useState<QRType>(defaultType);
   const [urlInput, setUrlInput] = useState("");
   const [textInput, setTextInput] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
   const [vcardInput, setVcardInput] = useState<VCardInput>(DEFAULT_VCARD);
   const [locationInput, setLocationInput] = useState<LocationInput>(DEFAULT_LOCATION);
+  const [upiInput, setUpiInput] = useState<UpiInput>(DEFAULT_UPI);
 
   const { customization, setCustomization, resetToDefaults } = usePersistedCustomization();
   const previewRef = useRef<QRPreviewHandle>(null);
@@ -106,11 +121,26 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
         const v = validateLocation(locationInput);
         return { validation: v, payload: v.valid ? generateLocationPayload(locationInput) : "" };
       }
+      case "upi": {
+        const v = validateUpi(upiInput);
+        return { validation: v, payload: v.valid ? generateUpiPayload(upiInput) : "" };
+      }
     }
-  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput]);
+  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput, upiInput]);
 
   const isDisabled = !validation?.valid || !payload;
   const [customizationOpen, setCustomizationOpen] = useState(false);
+
+  function handleScanResult(decoded: string) {
+    if (/^https?:\/\//i.test(decoded)) {
+      setQrType("url");
+      setUrlInput(decoded);
+    } else {
+      setQrType("text");
+      setTextInput(decoded);
+    }
+    setAppMode("generate");
+  }
 
   // Fire qr_generated 1.5 s after the payload stabilises — avoids a flood
   // of events while the user is still typing. Structural params only; no content.
@@ -172,7 +202,7 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
 
         {/* Subheadline */}
         <p className="mt-3 text-base" style={{ color: "var(--text-secondary)" }}>
-          Create custom QR codes for URLs, text, phone, contacts, and locations — free, instant, and client-side.
+          Create custom QR codes for URLs, text, phone, UPI payments, contacts, and locations — free, instant, and client-side.
         </p>
 
         {/* Privacy note */}
@@ -189,6 +219,40 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
         </p>
       </div>
 
+      {/* ── Generate / Scan mode toggle ── */}
+      <div
+        role="group"
+        aria-label="App mode"
+        className="mb-8 flex gap-1 rounded-xl p-1"
+        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)" }}
+      >
+        <button
+          type="button"
+          aria-pressed={appMode === "generate"}
+          onClick={() => setAppMode("generate")}
+          className={["flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
+            appMode === "generate" ? "btn-cyan" : ""].join(" ")}
+          style={appMode === "generate" ? {} : { color: "var(--text-secondary)" }}
+        >
+          <QRGenerateIcon /> Generate QR Code
+        </button>
+        <button
+          type="button"
+          aria-pressed={appMode === "scan"}
+          onClick={() => setAppMode("scan")}
+          className={["flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
+            appMode === "scan" ? "btn-cyan" : ""].join(" ")}
+          style={appMode === "scan" ? {} : { color: "var(--text-secondary)" }}
+        >
+          <QRScanIcon /> Scan QR Code
+        </button>
+      </div>
+
+      {appMode === "scan" && (
+        <QRScanner onGenerateFromResult={handleScanResult} />
+      )}
+
+      {appMode === "generate" && (
       <div className="flex flex-col gap-8 lg:flex-row">
         {/* ── Left column ── */}
         <div className="flex-1 space-y-6">
@@ -212,6 +276,9 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
               )}
               {qrType === "location" && (
                 <LocationForm value={locationInput} onChange={setLocationInput} validation={validation} />
+              )}
+              {qrType === "upi" && (
+                <UpiForm value={upiInput} onChange={setUpiInput} validation={validation} />
               )}
             </div>
           </Card>
@@ -294,6 +361,7 @@ export default function QRGenerator({ defaultType = "url" }: { defaultType?: QRT
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -360,6 +428,29 @@ function ChevronDownIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
       <polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function QRGenerateIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none" />
+      <rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none" />
+      <rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none" />
+      <path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function QRScanIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path d="M3 7V5a2 2 0 012-2h2" strokeLinecap="round" /><path d="M17 3h2a2 2 0 012 2v2" strokeLinecap="round" />
+      <path d="M21 17v2a2 2 0 01-2 2h-2" strokeLinecap="round" /><path d="M7 21H5a2 2 0 01-2-2v-2" strokeLinecap="round" />
+      <line x1="3" y1="12" x2="21" y2="12" strokeLinecap="round" />
     </svg>
   );
 }
@@ -672,6 +763,99 @@ function LocationForm({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── UPI form ──────────────────────────────────────────────────────────────────
+
+function UpiForm({
+  value,
+  onChange,
+  validation,
+}: {
+  value: UpiInput;
+  onChange: (v: UpiInput) => void;
+  validation: ValidationResult;
+}) {
+  const set = <K extends keyof UpiInput>(key: K, val: UpiInput[K]) =>
+    onChange({ ...value, [key]: val });
+
+  const idHasError = value.upiId !== "" && !validation.valid && !!validation.error;
+  const nameHasError = !validation.valid && !value.payeeName.trim() && !!value.upiId.trim();
+  const amtHasError =
+    value.amount.trim() !== "" && !validation.valid &&
+    !!validation.error && validation.error.includes("Amount");
+
+  return (
+    <div className="space-y-3">
+      <Field label="UPI ID *" inputId="upi-id">
+        <input
+          id="upi-id"
+          type="text"
+          placeholder="name@okaxis"
+          value={value.upiId}
+          onChange={(e) => set("upiId", e.target.value)}
+          className="themed-input"
+          aria-required="true"
+          aria-invalid={idHasError ? true : undefined}
+          aria-describedby={idHasError ? "upi-id-error" : undefined}
+        />
+        {idHasError && (
+          <p id="upi-id-error" role="alert" className="text-xs text-red-500">{validation.error}</p>
+        )}
+      </Field>
+      <Field label="Payee Name *" inputId="upi-name">
+        <input
+          id="upi-name"
+          type="text"
+          placeholder="Your Name or Business"
+          value={value.payeeName}
+          onChange={(e) => set("payeeName", e.target.value)}
+          className="themed-input"
+          aria-required="true"
+          aria-invalid={nameHasError ? true : undefined}
+          aria-describedby={nameHasError ? "upi-name-error" : undefined}
+        />
+        {nameHasError && (
+          <p id="upi-name-error" role="alert" className="text-xs text-red-500">{validation.error}</p>
+        )}
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Amount (optional)" inputId="upi-amount">
+          <input
+            id="upi-amount"
+            type="text"
+            inputMode="decimal"
+            placeholder="100.00"
+            value={value.amount}
+            onChange={(e) => set("amount", e.target.value)}
+            className="themed-input"
+            aria-invalid={amtHasError ? true : undefined}
+            aria-describedby={amtHasError ? "upi-amount-error" : undefined}
+          />
+          {amtHasError && (
+            <p id="upi-amount-error" role="alert" className="text-xs text-red-500">{validation.error}</p>
+          )}
+        </Field>
+        <Field label="Note (optional)" inputId="upi-note">
+          <input
+            id="upi-note"
+            type="text"
+            placeholder="Payment for..."
+            value={value.note}
+            onChange={(e) => set("note", e.target.value)}
+            className="themed-input"
+          />
+        </Field>
+      </div>
+      <p
+        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs"
+        style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-hint)" }}
+      >
+        <ShieldIcon />
+        Your UPI ID is never sent to our servers. The QR code is generated entirely in your browser.
+      </p>
     </div>
   );
 }

@@ -13,6 +13,7 @@ const FILENAMES: Record<QRType, string> = {
   phone: "phone-qr-code",
   vcard: "vcard-qr-code",
   location: "location-qr-code",
+  upi: "upi-qr-code",
 };
 
 export function getFilename(qrType: QRType): string {

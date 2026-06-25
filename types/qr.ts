@@ -1,4 +1,4 @@
-export type QRType = "url" | "text" | "phone" | "vcard" | "location";
+export type QRType = "url" | "text" | "phone" | "vcard" | "location" | "upi";
 
 export type DotStyle = "square" | "rounded" | "dots" | "extra-rounded";
 
@@ -23,6 +23,13 @@ export interface LocationInput {
   lat: string;
   lng: string;
   mapsLink: string;
+}
+
+export interface UpiInput {
+  upiId: string;
+  payeeName: string;
+  amount: string;
+  note: string;
 }
 
 export interface GradientOptions {

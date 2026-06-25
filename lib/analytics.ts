@@ -46,3 +46,11 @@ export function trackLogoUploaded(params: {
 }) {
   send("logo_uploaded", params);
 }
+
+// method: 'upload' | 'camera' — content_type is inferred from decoded value structure, never the raw content
+export function trackQRScanned(params: {
+  method: "upload" | "camera";
+  content_type: string;
+}) {
+  send("qr_scanned", params);
+}

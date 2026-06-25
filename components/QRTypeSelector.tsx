@@ -13,6 +13,7 @@ const TABS: { id: QRType; label: string; icon: string }[] = [
   { id: "phone",    label: "Phone",       icon: "📞" },
   { id: "vcard",    label: "vCard",       icon: "👤" },
   { id: "location", label: "Location",    icon: "📍" },
+  { id: "upi",      label: "UPI Pay",     icon: "💸" },
 ];
 
 export default function QRTypeSelector({ value, onChange }: Props) {
