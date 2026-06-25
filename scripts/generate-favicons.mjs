@@ -15,35 +15,42 @@ const APP = join(ROOT, "app");
 mkdirSync(PUBLIC, { recursive: true });
 
 // ── SVG source ────────────────────────────────────────────────────────────────
-// Navy (#0a1628) background, cyan (#06b6d4) stylised QR code.
-// The icon uses three finder-pattern squares (top-left, top-right, bottom-left)
-// and a 3×3 grid of data dots to read as a QR at tiny sizes.
+// Vivid cyan-to-teal gradient background, white QR elements — high visibility
+// at all sizes including 16×16 browser tabs.
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+  </defs>
+
   <!-- Background -->
-  <rect width="32" height="32" rx="6" fill="#0a1628"/>
+  <rect width="32" height="32" rx="6" fill="url(#bg)"/>
 
-  <!-- Top-left finder square (outer 7×7 at 3,3) -->
-  <rect x="3" y="3" width="7" height="7" rx="1.2" fill="none" stroke="#06b6d4" stroke-width="1.5"/>
-  <rect x="5.5" y="5.5" width="2" height="2" rx="0.4" fill="#06b6d4"/>
+  <!-- Top-left finder square -->
+  <rect x="3.5" y="3.5" width="7" height="7" rx="1.4" fill="none" stroke="#ffffff" stroke-width="1.8"/>
+  <rect x="6" y="6" width="2.5" height="2.5" rx="0.5" fill="#ffffff"/>
 
-  <!-- Top-right finder square (outer 7×7 at 22,3) -->
-  <rect x="22" y="3" width="7" height="7" rx="1.2" fill="none" stroke="#06b6d4" stroke-width="1.5"/>
-  <rect x="24.5" y="5.5" width="2" height="2" rx="0.4" fill="#06b6d4"/>
+  <!-- Top-right finder square -->
+  <rect x="21.5" y="3.5" width="7" height="7" rx="1.4" fill="none" stroke="#ffffff" stroke-width="1.8"/>
+  <rect x="24" y="6" width="2.5" height="2.5" rx="0.5" fill="#ffffff"/>
 
-  <!-- Bottom-left finder square (outer 7×7 at 3,22) -->
-  <rect x="3" y="22" width="7" height="7" rx="1.2" fill="none" stroke="#06b6d4" stroke-width="1.5"/>
-  <rect x="5.5" y="24.5" width="2" height="2" rx="0.4" fill="#06b6d4"/>
+  <!-- Bottom-left finder square -->
+  <rect x="3.5" y="21.5" width="7" height="7" rx="1.4" fill="none" stroke="#ffffff" stroke-width="1.8"/>
+  <rect x="6" y="24" width="2.5" height="2.5" rx="0.5" fill="#ffffff"/>
 
-  <!-- Data dots (bottom-right quadrant, 3×3 grid) -->
-  <rect x="22" y="22" width="2.2" height="2.2" rx="0.5" fill="#06b6d4"/>
-  <rect x="25.4" y="22" width="2.2" height="2.2" rx="0.5" fill="#06b6d4"/>
-  <rect x="22" y="25.4" width="2.2" height="2.2" rx="0.5" fill="#06b6d4"/>
+  <!-- Data dots (bottom-right) -->
+  <rect x="21.5" y="21.5" width="2.5" height="2.5" rx="0.6" fill="#ffffff"/>
+  <rect x="25.5" y="21.5" width="2.5" height="2.5" rx="0.6" fill="#ffffff"/>
+  <rect x="21.5" y="25.5" width="2.5" height="2.5" rx="0.6" fill="#ffffff"/>
+  <rect x="25.5" y="25.5" width="2.5" height="2.5" rx="0.6" fill="#ffffff"/>
 
-  <!-- Timing dots (centre strip) -->
-  <rect x="13" y="13" width="2" height="2" rx="0.4" fill="#06b6d4"/>
-  <rect x="16.5" y="13" width="2" height="2" rx="0.4" fill="#06b6d4"/>
-  <rect x="13" y="16.5" width="2" height="2" rx="0.4" fill="#06b6d4"/>
-  <rect x="16.5" y="16.5" width="2" height="2" rx="0.4" fill="#06b6d4"/>
+  <!-- Centre timing dots -->
+  <rect x="13" y="13" width="2.5" height="2.5" rx="0.5" fill="#ffffff"/>
+  <rect x="16.5" y="13" width="2.5" height="2.5" rx="0.5" fill="#ffffff"/>
+  <rect x="13" y="16.5" width="2.5" height="2.5" rx="0.5" fill="#ffffff"/>
+  <rect x="16.5" y="16.5" width="2.5" height="2.5" rx="0.5" fill="#ffffff"/>
 </svg>`;
 
 const svgBuffer = Buffer.from(svg);
