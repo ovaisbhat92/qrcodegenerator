@@ -5,13 +5,13 @@
 /* ── Design tokens ──────────────────────────────────────────── */
 
 :root {
-  --bg-base:        #f0f9ff;
+  --bg-base:        #e8eef5;
   --bg-surface:     #ffffff;
-  --bg-input:       rgba(0, 0, 0, 0.04);
-  --border:         rgba(0, 0, 0, 0.10);
-  --text-primary:   #0c4a6e;
-  --text-secondary: rgba(12, 74, 110, 0.65);
-  --text-hint:      rgba(12, 74, 110, 0.40);
+  --bg-input:       #f1f5f9;
+  --border:         rgba(15, 23, 42, 0.14);
+  --text-primary:   #0f172a;
+  --text-secondary: #334155;
+  --text-hint:      #64748b;
   --gradient-heading: linear-gradient(135deg, #0c4a6e 30%, #06b6d4 100%);
 }
 
