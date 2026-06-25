@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   description:
     "Create a location QR code that opens Google Maps or Apple Maps to any address, landmark, or GPS pin. Free, instant, no signup. Download PNG, SVG, or PDF.",
   alternates: {
-    canonical: "https://qrcodegenerator.vercel.app/location-qr-code-generator",
+    canonical: "https://qrcodegenerator.space/location-qr-code-generator",
   },
   openGraph: {
     title: "Location QR Code Generator — Share Any Address or GPS Coordinates",
     description:
       "Create a location QR code that opens Google Maps or Apple Maps to any address, landmark, or GPS pin. Free, instant, no signup. Download PNG, SVG, or PDF.",
-    url: "https://qrcodegenerator.vercel.app/location-qr-code-generator",
+    url: "https://qrcodegenerator.space/location-qr-code-generator",
     siteName: "QR Code Generator",
     type: "website",
   },
@@ -23,9 +23,9 @@ const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.vercel.app/" },
-    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.vercel.app/qr-code-generator" },
-    { "@type": "ListItem", position: 3, name: "Location QR Code Generator", item: "https://qrcodegenerator.vercel.app/location-qr-code-generator" },
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.space/" },
+    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.space/qr-code-generator" },
+    { "@type": "ListItem", position: 3, name: "Location QR Code Generator", item: "https://qrcodegenerator.space/location-qr-code-generator" },
   ],
 };
 

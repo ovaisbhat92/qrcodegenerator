@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   description:
     "Generate a phone call QR code (tel: URI) that instantly opens the dialer when scanned. Free, customizable colors and styles. Download PNG, SVG, JPEG, or PDF — no signup.",
   alternates: {
-    canonical: "https://qrcodegenerator.vercel.app/phone-qr-code-generator",
+    canonical: "https://qrcodegenerator.space/phone-qr-code-generator",
   },
   openGraph: {
     title: "Phone Call QR Code Generator — Click-to-Call QR Codes Free",
     description:
       "Generate a phone call QR code (tel: URI) that instantly opens the dialer when scanned. Free, customizable colors and styles. Download PNG, SVG, JPEG, or PDF — no signup.",
-    url: "https://qrcodegenerator.vercel.app/phone-qr-code-generator",
+    url: "https://qrcodegenerator.space/phone-qr-code-generator",
     siteName: "QR Code Generator",
     type: "website",
   },
@@ -23,9 +23,9 @@ const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.vercel.app/" },
-    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.vercel.app/qr-code-generator" },
-    { "@type": "ListItem", position: 3, name: "Phone Call QR Code Generator", item: "https://qrcodegenerator.vercel.app/phone-qr-code-generator" },
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.space/" },
+    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.space/qr-code-generator" },
+    { "@type": "ListItem", position: 3, name: "Phone Call QR Code Generator", item: "https://qrcodegenerator.space/phone-qr-code-generator" },
   ],
 };
 

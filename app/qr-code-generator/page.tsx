@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   description:
     "Create free custom QR codes for websites, text, phone numbers, contacts, and locations. Customize colors, add a logo, download PNG, SVG, JPEG, WebP, or PDF. No signup, no watermarks.",
   alternates: {
-    canonical: "https://qrcodegenerator.vercel.app/qr-code-generator",
+    canonical: "https://qrcodegenerator.space/qr-code-generator",
   },
   openGraph: {
     title: "Free QR Code Generator — Create Custom QR Codes for Any Purpose",
     description:
       "Create free custom QR codes for websites, text, phone numbers, contacts, and locations. Customize colors, add a logo, download PNG, SVG, JPEG, WebP, or PDF. No signup, no watermarks.",
-    url: "https://qrcodegenerator.vercel.app/qr-code-generator",
+    url: "https://qrcodegenerator.space/qr-code-generator",
     siteName: "QR Code Generator",
     type: "website",
   },

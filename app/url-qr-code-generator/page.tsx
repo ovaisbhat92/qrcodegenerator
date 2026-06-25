@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   description:
     "Turn any website link into a scannable QR code in seconds. Customize colors, shapes, and add your logo. Download as PNG, SVG, JPG, WebP, or PDF — 100% free, no signup.",
   alternates: {
-    canonical: "https://qrcodegenerator.vercel.app/url-qr-code-generator",
+    canonical: "https://qrcodegenerator.space/url-qr-code-generator",
   },
   openGraph: {
     title: "Free URL QR Code Generator — Create Custom Website QR Codes",
     description:
       "Turn any website link into a scannable QR code in seconds. Customize colors, shapes, and add your logo. Download as PNG, SVG, JPG, WebP, or PDF — 100% free, no signup.",
-    url: "https://qrcodegenerator.vercel.app/url-qr-code-generator",
+    url: "https://qrcodegenerator.space/url-qr-code-generator",
     siteName: "QR Code Generator",
     type: "website",
   },
@@ -23,9 +23,9 @@ const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.vercel.app/" },
-    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.vercel.app/qr-code-generator" },
-    { "@type": "ListItem", position: 3, name: "URL QR Code Generator", item: "https://qrcodegenerator.vercel.app/url-qr-code-generator" },
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.space/" },
+    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.space/qr-code-generator" },
+    { "@type": "ListItem", position: 3, name: "URL QR Code Generator", item: "https://qrcodegenerator.space/url-qr-code-generator" },
   ],
 };
 

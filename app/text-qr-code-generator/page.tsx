@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   description:
     "Turn any message, note, or instruction into a scannable QR code. No URL needed — just text. Works offline. Customize colors and download free as PNG, SVG, or PDF.",
   alternates: {
-    canonical: "https://qrcodegenerator.vercel.app/text-qr-code-generator",
+    canonical: "https://qrcodegenerator.space/text-qr-code-generator",
   },
   openGraph: {
     title: "Text QR Code Generator — Create Scannable Plain Text QR Codes",
     description:
       "Turn any message, note, or instruction into a scannable QR code. No URL needed — just text. Works offline. Customize colors and download free as PNG, SVG, or PDF.",
-    url: "https://qrcodegenerator.vercel.app/text-qr-code-generator",
+    url: "https://qrcodegenerator.space/text-qr-code-generator",
     siteName: "QR Code Generator",
     type: "website",
   },
@@ -23,9 +23,9 @@ const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.vercel.app/" },
-    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.vercel.app/qr-code-generator" },
-    { "@type": "ListItem", position: 3, name: "Text QR Code Generator", item: "https://qrcodegenerator.vercel.app/text-qr-code-generator" },
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.space/" },
+    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.space/qr-code-generator" },
+    { "@type": "ListItem", position: 3, name: "Text QR Code Generator", item: "https://qrcodegenerator.space/text-qr-code-generator" },
   ],
 };
 
