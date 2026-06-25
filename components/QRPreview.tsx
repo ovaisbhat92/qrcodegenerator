@@ -19,7 +19,6 @@ export interface QRPreviewHandle {
   copyToClipboard: () => Promise<void>;
 }
 
-// Structural type for the qr-code-styling instance (avoids importing the class at module level).
 interface QRInstance {
   append(container: HTMLElement): void;
   update(options: Record<string, unknown>): void;
@@ -27,10 +26,16 @@ interface QRInstance {
   getRawData(extension: string): Promise<Blob>;
 }
 
+export interface UpiCaption {
+  payeeName: string;
+  amount: string;
+}
+
 interface Props {
   data: string;
   qrType: QRType;
   options: CustomizationOptions;
+  upiCaption?: UpiCaption | null;
 }
 
 const QR_TYPE_LABELS: Record<QRType, string> = {
@@ -42,7 +47,6 @@ const QR_TYPE_LABELS: Record<QRType, string> = {
   upi: "UPI payment",
 };
 
-// Module-level cache so the dynamic import only happens once.
 let qrModulePromise: Promise<{ default: unknown }> | null = null;
 function getQRModule(): Promise<{ default: unknown }> {
   if (!qrModulePromise) {
@@ -124,10 +128,105 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function formatAmountText(amount: string): string {
+  const n = parseFloat(amount);
+  return isNaN(n) ? `₹ ${amount}` : `₹ ${n.toFixed(2)}`;
+}
+
+// Builds a canvas with the QR image on top and a styled caption card below.
+async function buildCaptionCanvas(
+  qrDataUrl: string,
+  qrSize: number,
+  caption: UpiCaption
+): Promise<HTMLCanvasElement> {
+  const PAD = Math.round(qrSize * 0.065);
+  const captionH = Math.round(qrSize * 0.30);
+  const borderH = Math.max(3, Math.round(qrSize * 0.006));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = qrSize;
+  canvas.height = qrSize + captionH;
+  const ctx = canvas.getContext("2d")!;
+
+  // QR
+  const img = await loadImage(qrDataUrl);
+  ctx.drawImage(img, 0, 0, qrSize, qrSize);
+
+  // Caption background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, qrSize, qrSize, captionH);
+
+  // Cyan top border
+  ctx.fillStyle = "#06b6d4";
+  ctx.fillRect(0, qrSize, qrSize, borderH);
+
+  const FONT = "-apple-system, BlinkMacSystemFont, Arial, sans-serif";
+
+  // Payee name
+  const nameFontSize = Math.round(qrSize * 0.052);
+  ctx.fillStyle = "#0a1628";
+  ctx.font = `700 ${nameFontSize}px ${FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText(caption.payeeName, qrSize / 2, qrSize + PAD, qrSize - PAD * 2);
+
+  // Amount
+  const amtFontSize = Math.round(qrSize * 0.065);
+  const hasAmt = caption.amount.trim() !== "";
+  ctx.fillStyle = hasAmt ? "#06b6d4" : "#94a3b8";
+  ctx.font = `800 ${amtFontSize}px ${FONT}`;
+  const amtText = hasAmt ? formatAmountText(caption.amount) : "Any Amount";
+  ctx.fillText(amtText, qrSize / 2, qrSize + PAD + nameFontSize + 10, qrSize - PAD * 2);
+
+  // Scan to Pay label
+  const labelFontSize = Math.max(10, Math.round(qrSize * 0.025));
+  ctx.fillStyle = "#94a3b8";
+  ctx.font = `600 ${labelFontSize}px ${FONT}`;
+  ctx.textBaseline = "bottom";
+  ctx.fillText("SCAN TO PAY", qrSize / 2, qrSize + captionH - Math.round(PAD * 0.7));
+
+  return canvas;
+}
+
+async function downloadCanvasAs(
+  canvas: HTMLCanvasElement,
+  filename: string,
+  mime: string,
+  quality?: number
+): Promise<void> {
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) { resolve(); return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 200);
+        resolve();
+      },
+      mime,
+      quality
+    );
+  });
+}
+
 const PREVIEW_SIZE = 288;
 
 const QRPreview = forwardRef<QRPreviewHandle, Props>(
-  ({ data, qrType, options }, ref) => {
+  ({ data, qrType, options, upiCaption }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const qrCodeRef = useRef<QRInstance | null>(null);
     const isMountedRef = useRef(true);
@@ -136,16 +235,11 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
 
     useEffect(() => {
       isMountedRef.current = true;
-      return () => {
-        isMountedRef.current = false;
-      };
+      return () => { isMountedRef.current = false; };
     }, []);
 
     useEffect(() => {
-      if (!data) {
-        qrCodeRef.current = null;
-        return;
-      }
+      if (!data) { qrCodeRef.current = null; return; }
 
       getQRModule().then(({ default: QRCodeStyling }) => {
         if (!isMountedRef.current || !containerRef.current) return;
@@ -161,27 +255,111 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
 
     useImperativeHandle(ref, () => ({
       downloadPNG: () => {
-        if (qrCodeRef.current) downloadPNG(qrCodeRef.current, qrType);
+        if (!qrCodeRef.current) return;
+        if (upiCaption?.payeeName) {
+          void (async () => {
+            const blob = await qrCodeRef.current!.getRawData("png");
+            const qrDataUrl = await blobToDataUrl(blob);
+            const canvas = await buildCaptionCanvas(qrDataUrl, options.size, upiCaption);
+            await downloadCanvasAs(canvas, `${getFilename(qrType)}.png`, "image/png");
+          })();
+        } else {
+          downloadPNG(qrCodeRef.current, qrType);
+        }
       },
       downloadSVG: () => {
+        // SVG is for editing — caption excluded by design
         if (qrCodeRef.current) downloadSVG(qrCodeRef.current, qrType);
       },
       downloadJPEG: () => {
-        if (qrCodeRef.current) downloadJPEG(qrCodeRef.current, qrType);
+        if (!qrCodeRef.current) return;
+        if (upiCaption?.payeeName) {
+          void (async () => {
+            const blob = await qrCodeRef.current!.getRawData("png");
+            const qrDataUrl = await blobToDataUrl(blob);
+            const srcCanvas = await buildCaptionCanvas(qrDataUrl, options.size, upiCaption);
+            // JPEG doesn't support alpha — composite over white
+            const jpgCanvas = document.createElement("canvas");
+            jpgCanvas.width = srcCanvas.width;
+            jpgCanvas.height = srcCanvas.height;
+            const ctx = jpgCanvas.getContext("2d")!;
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, jpgCanvas.width, jpgCanvas.height);
+            ctx.drawImage(srcCanvas, 0, 0);
+            await downloadCanvasAs(jpgCanvas, `${getFilename(qrType)}.jpg`, "image/jpeg", 0.92);
+          })();
+        } else {
+          downloadJPEG(qrCodeRef.current, qrType);
+        }
       },
       downloadWebP: () => {
-        if (qrCodeRef.current) downloadWebP(qrCodeRef.current, qrType);
+        if (!qrCodeRef.current) return;
+        if (upiCaption?.payeeName) {
+          void (async () => {
+            const blob = await qrCodeRef.current!.getRawData("png");
+            const qrDataUrl = await blobToDataUrl(blob);
+            const canvas = await buildCaptionCanvas(qrDataUrl, options.size, upiCaption);
+            await downloadCanvasAs(canvas, `${getFilename(qrType)}.webp`, "image/webp", 0.92);
+          })();
+        } else {
+          downloadWebP(qrCodeRef.current, qrType);
+        }
       },
       downloadPDF: async () => {
         if (!qrCodeRef.current) return;
         const blob = await qrCodeRef.current.getRawData("png");
-        const dataUrl = await blobToDataUrl(blob);
+        const qrDataUrl = await blobToDataUrl(blob);
         const { jsPDF } = await import("jspdf");
         const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const pageW = 210;
         const pageH = 297;
         const imgSize = 140;
-        pdf.addImage(dataUrl, "PNG", (pageW - imgSize) / 2, (pageH - imgSize) / 2, imgSize, imgSize);
+
+        if (upiCaption?.payeeName) {
+          const captionH = 38;
+          const totalH = imgSize + captionH;
+          const qrX = (pageW - imgSize) / 2;
+          const qrY = (pageH - totalH) / 2;
+          const cY = qrY + imgSize;
+
+          pdf.addImage(qrDataUrl, "PNG", qrX, qrY, imgSize, imgSize);
+
+          // Caption background
+          pdf.setFillColor(255, 255, 255);
+          pdf.rect(qrX, cY, imgSize, captionH, "F");
+
+          // Cyan top border
+          pdf.setFillColor(6, 182, 212);
+          pdf.rect(qrX, cY, imgSize, 0.9, "F");
+
+          // Payee name
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(13);
+          pdf.setTextColor(10, 22, 40);
+          pdf.text(upiCaption.payeeName, pageW / 2, cY + 12, { align: "center" });
+
+          // Amount — jsPDF standard fonts don't include ₹, use "Rs." fallback
+          const hasAmt = upiCaption.amount.trim() !== "";
+          const amtNum = hasAmt ? parseFloat(upiCaption.amount) : NaN;
+          const amtText = hasAmt
+            ? `Rs. ${isNaN(amtNum) ? upiCaption.amount : amtNum.toFixed(2)}`
+            : "Any Amount";
+          pdf.setFontSize(15);
+          if (hasAmt) {
+            pdf.setTextColor(6, 182, 212);
+          } else {
+            pdf.setTextColor(148, 163, 184);
+          }
+          pdf.text(amtText, pageW / 2, cY + 24, { align: "center" });
+
+          // Scan to Pay
+          pdf.setFontSize(7);
+          pdf.setTextColor(148, 163, 184);
+          pdf.text("SCAN TO PAY", pageW / 2, cY + 34, { align: "center" });
+        } else {
+          pdf.addImage(qrDataUrl, "PNG", (pageW - imgSize) / 2, (pageH - imgSize) / 2, imgSize, imgSize);
+        }
+
         pdf.save(`${getFilename(qrType)}.pdf`);
       },
       copyToClipboard: async () => {
@@ -194,15 +372,14 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
           new ClipboardItem({ "image/png": blob }),
         ]);
       },
-    }));
+    }), [qrType, upiCaption, options.size]);
 
     const scale = options.size > PREVIEW_SIZE ? PREVIEW_SIZE / options.size : 1;
 
     const bgStyle =
       options.transparentBg
         ? {
-            backgroundImage:
-              "repeating-conic-gradient(#e5e7eb 0% 25%, white 0% 50%)",
+            backgroundImage: "repeating-conic-gradient(#e5e7eb 0% 25%, white 0% 50%)",
             backgroundSize: "16px 16px",
           }
         : { backgroundColor: "#f9fafb" };
@@ -211,32 +388,93 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
       ? `QR code preview for ${QR_TYPE_LABELS[qrType]}`
       : "QR code preview — enter content above to generate";
 
+    const showCaption = !!(upiCaption?.payeeName && data);
+
     return (
-      <div
-        role="img"
-        aria-label={ariaLabel}
-        className="overflow-hidden rounded-xl"
-        style={{
-          width: PREVIEW_SIZE,
-          height: PREVIEW_SIZE,
-          boxShadow: "0 0 30px rgba(6,182,212,0.2), 0 0 0 1px rgba(255,255,255,0.06)",
-          ...bgStyle,
-        }}
-      >
-        {!data ? (
-          <Placeholder />
-        ) : (
-          <div
-            className="flex items-center justify-center"
-            style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
-          >
+      <div style={{ width: PREVIEW_SIZE }}>
+        {/* QR code */}
+        <div
+          role="img"
+          aria-label={ariaLabel}
+          className="overflow-hidden"
+          style={{
+            width: PREVIEW_SIZE,
+            height: PREVIEW_SIZE,
+            borderRadius: showCaption ? "12px 12px 0 0" : "12px",
+            boxShadow: "0 0 30px rgba(6,182,212,0.2), 0 0 0 1px rgba(255,255,255,0.06)",
+            ...bgStyle,
+          }}
+        >
+          {!data ? (
+            <Placeholder />
+          ) : (
             <div
-              ref={containerRef}
+              className="flex items-center justify-center"
+              style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
+            >
+              <div
+                ref={containerRef}
+                style={{
+                  transform: scale < 1 ? `scale(${scale})` : undefined,
+                  transformOrigin: "center center",
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* UPI caption card */}
+        {showCaption && upiCaption && (
+          <div
+            aria-label="UPI payment caption"
+            style={{
+              width: PREVIEW_SIZE,
+              background: "#ffffff",
+              borderTop: "3px solid #06b6d4",
+              borderRadius: "0 0 12px 12px",
+              boxShadow: "0 0 30px rgba(6,182,212,0.2), 0 0 0 1px rgba(255,255,255,0.06)",
+              padding: "12px 14px 10px",
+              textAlign: "center",
+            }}
+          >
+            <p
               style={{
-                transform: scale < 1 ? `scale(${scale})` : undefined,
-                transformOrigin: "center center",
+                color: "#0a1628",
+                fontWeight: 700,
+                fontSize: "16px",
+                lineHeight: 1.2,
+                marginBottom: "4px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
-            />
+            >
+              {upiCaption.payeeName}
+            </p>
+            <p
+              style={{
+                color: upiCaption.amount.trim() ? "#06b6d4" : "#94a3b8",
+                fontWeight: 800,
+                fontSize: "20px",
+                lineHeight: 1.2,
+                marginBottom: "5px",
+              }}
+            >
+              {upiCaption.amount.trim()
+                ? formatAmountText(upiCaption.amount)
+                : "Any Amount"}
+            </p>
+            <p
+              style={{
+                color: "#94a3b8",
+                fontSize: "10px",
+                fontWeight: 600,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+            >
+              Scan to Pay
+            </p>
           </div>
         )}
       </div>

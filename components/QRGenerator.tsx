@@ -24,7 +24,7 @@ import {
 import QRScanner from "@/components/QRScanner";
 import QRTypeSelector from "@/components/QRTypeSelector";
 import CustomizationPanel from "@/components/CustomizationPanel";
-import QRPreview, { type QRPreviewHandle } from "@/components/QRPreview";
+import QRPreview, { type QRPreviewHandle, type UpiCaption } from "@/components/QRPreview";
 import DownloadButtons from "@/components/DownloadButtons";
 
 const STORAGE_KEY = "qr-customization";
@@ -127,6 +127,11 @@ export default function QRGenerator({
       }
     }
   }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput, upiInput]);
+
+  const upiCaption = useMemo((): UpiCaption | null => {
+    if (qrType !== "upi" || !upiInput.payeeName.trim()) return null;
+    return { payeeName: upiInput.payeeName.trim(), amount: upiInput.amount.trim() };
+  }, [qrType, upiInput.payeeName, upiInput.amount]);
 
   const isDisabled = !validation?.valid || !payload;
   const [customizationOpen, setCustomizationOpen] = useState(false);
@@ -336,6 +341,7 @@ export default function QRGenerator({
                   data={payload}
                   qrType={qrType}
                   options={customization}
+                  upiCaption={upiCaption}
                 />
               </div>
               <p
