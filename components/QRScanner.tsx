@@ -63,7 +63,7 @@ function detectContentType(value: string): string {
   return "text";
 }
 
-export default function QRScanner({ onGenerateFromResult }: Props) {
+export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult }: Props) {
   const [method, setMethod] = useState<Method>("upload");
   const [parsed, setParsed] = useState<ParsedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +71,7 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
   const [copied, setCopied] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Video is always in the DOM so the ref is valid before setCameraState("scanning")
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -84,7 +85,9 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
-    if (videoRef.current) videoRef.current.srcObject = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
   }, []);
 
   useEffect(() => () => stopCamera(), [stopCamera]);
@@ -154,15 +157,19 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
         video: { facingMode: "environment" },
       });
       streamRef.current = stream;
+
+      // videoRef is always mounted, so this assignment happens before the
+      // scanning UI renders — the feed is ready when the element becomes visible
       const video = videoRef.current;
       if (video) {
         video.srcObject = stream;
-        await video.play();
+        video.play().catch(() => {});
       }
+
       scanningRef.current = true;
       setCameraState("scanning");
 
-      // Import jsQR once before the synchronous scan loop
+      // Import once before the synchronous rAF loop
       const jsQR = (await import("jsqr")).default;
 
       function tick() {
@@ -219,6 +226,8 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
       // ignore
     }
   }
+
+  const isScanning = cameraState === "scanning";
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
@@ -289,39 +298,6 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
                   Requesting camera permission…
                 </p>
               )}
-              {cameraState === "scanning" && (
-                <div className="space-y-3">
-                  <div
-                    className="relative overflow-hidden rounded-xl"
-                    style={{ border: "1px solid var(--border)" }}
-                  >
-                    <video
-                      ref={videoRef}
-                      className="w-full"
-                      aria-label="Camera feed for QR code scanning"
-                      autoPlay
-                      playsInline
-                      muted
-                    />
-                    <div
-                      className="absolute inset-0 flex items-center justify-center"
-                      aria-hidden="true"
-                    >
-                      <div className="h-48 w-48 rounded-lg border-2 border-brand-400 opacity-60" />
-                    </div>
-                  </div>
-                  <p className="text-center text-xs" style={{ color: "var(--text-hint)" }}>
-                    Point your camera at a QR code to scan it automatically
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleScanAgain}
-                    className="btn-ghost w-full rounded-lg py-2 text-sm font-semibold"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
               {cameraState === "denied" && (
                 <div
                   className="rounded-xl p-4 text-sm"
@@ -349,7 +325,45 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
             </div>
           )}
 
-          {/* Hidden canvas used for frame extraction */}
+          {/* Video always in DOM so ref is valid before cameraState === "scanning" */}
+          <div
+            className={[
+              "mt-3 space-y-3",
+              isScanning ? "block" : "hidden",
+            ].join(" ")}
+          >
+            <div
+              className="relative overflow-hidden rounded-xl"
+              style={{ border: "1px solid var(--border)" }}
+            >
+              <video
+                ref={videoRef}
+                className="w-full"
+                aria-label="Camera feed for QR code scanning"
+                autoPlay
+                playsInline
+                muted
+              />
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                aria-hidden="true"
+              >
+                <div className="h-48 w-48 rounded-lg border-2 border-brand-400 opacity-60" />
+              </div>
+            </div>
+            <p className="text-center text-xs" style={{ color: "var(--text-hint)" }}>
+              Point your camera at a QR code to scan it automatically
+            </p>
+            <button
+              type="button"
+              onClick={handleScanAgain}
+              className="btn-ghost w-full rounded-lg py-2 text-sm font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {/* Hidden canvas for frame extraction */}
           <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
         </div>
 
@@ -396,7 +410,6 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
           {parsed && (
             <div className="space-y-4">
               <ResultCard parsed={parsed} />
-
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -406,25 +419,16 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
                   <CopyIcon />
                   {copied ? "Copied!" : "Copy"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onGenerateFromResult(parsed.raw)}
-                  className="btn-cyan flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold"
-                >
-                  <QRIcon />
-                  Generate QR
-                </button>
+                {method === "camera" && (
+                  <button
+                    type="button"
+                    onClick={handleScanAgain}
+                    className="btn-ghost flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold"
+                  >
+                    Scan Again
+                  </button>
+                )}
               </div>
-
-              {method === "camera" && (
-                <button
-                  type="button"
-                  onClick={handleScanAgain}
-                  className="btn-ghost w-full rounded-lg py-2 text-sm font-semibold"
-                >
-                  Scan Again
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -440,25 +444,33 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
   const labelStyle = "text-xs font-medium uppercase tracking-wide";
   const valueStyle = "text-sm break-all";
 
+  const badge = (label: string) => (
+    <span
+      className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
+      style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}
+    >
+      {label}
+    </span>
+  );
+
   if (parsed.type === "url") {
     return (
       <div
-        className="rounded-xl p-4 space-y-2"
+        className="rounded-xl p-4 space-y-3"
         style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
       >
-        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}>
-          URL
-        </span>
+        {badge("URL")}
+        <p className="break-all text-sm" style={{ color: "var(--text-primary)" }}>{parsed.raw}</p>
         <a
           href={parsed.raw}
           target="_blank"
           rel="noopener noreferrer"
-          className="block break-all text-sm font-medium underline"
-          style={{ color: "#06b6d4" }}
+          className="btn-cyan flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold"
         >
-          {parsed.raw}
+          <ExternalLinkIcon />
+          Open Website
         </a>
-        <p className="text-xs" style={{ color: "var(--text-hint)" }}>
+        <p className="text-xs text-center" style={{ color: "var(--text-hint)" }}>
           ⚠️ Always verify links before visiting
         </p>
       </div>
@@ -471,9 +483,7 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
         className="rounded-xl p-4 space-y-3"
         style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
       >
-        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}>
-          UPI Payment
-        </span>
+        {badge("UPI Payment")}
         <div className="space-y-2">
           <div className={rowStyle}>
             <span className={labelStyle} style={{ color: "var(--text-hint)" }}>UPI ID</span>
@@ -498,6 +508,16 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
             </div>
           )}
         </div>
+        <a
+          href={parsed.raw}
+          className="btn-cyan flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold"
+        >
+          <PayIcon />
+          Pay Now
+        </a>
+        <p className="text-xs text-center" style={{ color: "var(--text-hint)" }}>
+          Opens your UPI payment app
+        </p>
       </div>
     );
   }
@@ -505,18 +525,17 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
   if (parsed.type === "phone") {
     return (
       <div
-        className="rounded-xl p-4 space-y-2"
+        className="rounded-xl p-4 space-y-3"
         style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
       >
-        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}>
-          Phone Number
-        </span>
+        {badge("Phone Number")}
+        <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{parsed.number}</p>
         <a
           href={parsed.raw}
-          className="block text-sm font-medium underline"
-          style={{ color: "#06b6d4" }}
+          className="btn-cyan flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold"
         >
-          {parsed.number}
+          <PhoneIcon />
+          Call
         </a>
       </div>
     );
@@ -528,9 +547,7 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
         className="rounded-xl p-4 space-y-3"
         style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
       >
-        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}>
-          Contact Card
-        </span>
+        {badge("Contact Card")}
         <div className="space-y-2">
           {parsed.fn && (
             <div className={rowStyle}>
@@ -565,12 +582,10 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
     const mapsUrl = `https://www.google.com/maps?q=${parsed.lat},${parsed.lng}`;
     return (
       <div
-        className="rounded-xl p-4 space-y-2"
+        className="rounded-xl p-4 space-y-3"
         style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
       >
-        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}>
-          Location
-        </span>
+        {badge("Location")}
         <p className="text-sm font-mono" style={{ color: "var(--text-primary)" }}>
           {parsed.lat}, {parsed.lng}
         </p>
@@ -578,10 +593,10 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
           href={mapsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block text-xs underline"
-          style={{ color: "#06b6d4" }}
+          className="btn-cyan flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold"
         >
-          Open in Google Maps ↗
+          <ExternalLinkIcon />
+          Open in Google Maps
         </a>
       </div>
     );
@@ -654,17 +669,29 @@ function CopyIcon() {
   );
 }
 
-function QRIcon() {
+function ExternalLinkIcon() {
   return (
     <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none" />
-      <rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none" />
-      <rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none" />
-      <path d="M14 14h3v3" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M17 17h4v4h-4z" />
+      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="15 3 21 3 21 9" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PayIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="1" y1="10" x2="23" y2="10" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PhoneIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
