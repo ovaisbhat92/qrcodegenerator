@@ -10,6 +10,50 @@ interface Props {
 type Method = "upload" | "camera";
 type CameraState = "idle" | "requesting" | "scanning" | "denied" | "unavailable";
 
+type ParsedResult =
+  | { type: "url"; raw: string }
+  | { type: "upi"; raw: string; upiId: string; payeeName: string; amount: string; note: string }
+  | { type: "phone"; raw: string; number: string }
+  | { type: "vcard"; raw: string; fn: string; tel: string; email: string; org: string }
+  | { type: "geo"; raw: string; lat: string; lng: string }
+  | { type: "text"; raw: string };
+
+function parseResult(raw: string): ParsedResult {
+  if (/^https?:\/\//i.test(raw)) return { type: "url", raw };
+
+  if (/^upi:\/\/pay\?/i.test(raw)) {
+    const qs = raw.replace(/^upi:\/\/pay\?/i, "");
+    const p = new URLSearchParams(qs);
+    return {
+      type: "upi",
+      raw,
+      upiId: p.get("pa") ?? "",
+      payeeName: p.get("pn") ?? "",
+      amount: p.get("am") ?? "",
+      note: p.get("tn") ?? "",
+    };
+  }
+
+  if (/^tel:/i.test(raw)) {
+    return { type: "phone", raw, number: raw.replace(/^tel:/i, "").trim() };
+  }
+
+  if (/^BEGIN:VCARD/i.test(raw)) {
+    const fn = raw.match(/^FN:(.+)$/m)?.[1]?.trim() ?? "";
+    const tel = raw.match(/^TEL[^:\r\n]*:(.+)$/m)?.[1]?.trim() ?? "";
+    const email = raw.match(/^EMAIL[^:\r\n]*:(.+)$/m)?.[1]?.trim() ?? "";
+    const org = raw.match(/^ORG:(.+)$/m)?.[1]?.trim() ?? "";
+    return { type: "vcard", raw, fn, tel, email, org };
+  }
+
+  if (/^geo:/i.test(raw)) {
+    const coords = raw.replace(/^geo:/i, "").split(",");
+    return { type: "geo", raw, lat: coords[0]?.trim() ?? "", lng: coords[1]?.trim() ?? "" };
+  }
+
+  return { type: "text", raw };
+}
+
 function detectContentType(value: string): string {
   if (/^https?:\/\//i.test(value)) return "url";
   if (/^upi:\/\//i.test(value)) return "upi";
@@ -21,7 +65,7 @@ function detectContentType(value: string): string {
 
 export default function QRScanner({ onGenerateFromResult }: Props) {
   const [method, setMethod] = useState<Method>("upload");
-  const [result, setResult] = useState<string | null>(null);
+  const [parsed, setParsed] = useState<ParsedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [copied, setCopied] = useState(false);
@@ -46,7 +90,7 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
   useEffect(() => () => stopCamera(), [stopCamera]);
 
   function resetAll() {
-    setResult(null);
+    setParsed(null);
     setError(null);
     setCopied(false);
   }
@@ -86,7 +130,7 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       if (code) {
-        setResult(code.data);
+        setParsed(parseResult(code.data));
         trackQRScanned({ method: "upload", content_type: detectContentType(code.data) });
       } else {
         setError("No QR code found in this image. Try a clearer or higher-resolution scan.");
@@ -110,13 +154,43 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
         video: { facingMode: "environment" },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = stream;
+        await video.play();
       }
       scanningRef.current = true;
       setCameraState("scanning");
-      scanFrame();
+
+      // Import jsQR once before the synchronous scan loop
+      const jsQR = (await import("jsqr")).default;
+
+      function tick() {
+        if (!scanningRef.current) return;
+        const v = videoRef.current;
+        const c = canvasRef.current;
+        if (!v || !c || v.readyState < 2) {
+          animFrameRef.current = requestAnimationFrame(tick);
+          return;
+        }
+        c.width = v.videoWidth;
+        c.height = v.videoHeight;
+        const ctx = c.getContext("2d");
+        if (!ctx) { animFrameRef.current = requestAnimationFrame(tick); return; }
+        ctx.drawImage(v, 0, 0);
+        const imageData = ctx.getImageData(0, 0, c.width, c.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          stopCamera();
+          setCameraState("idle");
+          setParsed(parseResult(code.data));
+          trackQRScanned({ method: "camera", content_type: detectContentType(code.data) });
+        } else {
+          animFrameRef.current = requestAnimationFrame(tick);
+        }
+      }
+
+      animFrameRef.current = requestAnimationFrame(tick);
     } catch (err) {
       const name = err instanceof Error ? err.name : "";
       if (name === "NotAllowedError" || name === "PermissionDeniedError") {
@@ -124,32 +198,6 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
       } else {
         setCameraState("unavailable");
       }
-    }
-  }
-
-  async function scanFrame() {
-    if (!scanningRef.current) return;
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas || video.readyState < 2) {
-      animFrameRef.current = requestAnimationFrame(scanFrame);
-      return;
-    }
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const jsQR = (await import("jsqr")).default;
-    const code = jsQR(imageData.data, imageData.width, imageData.height);
-    if (code) {
-      stopCamera();
-      setCameraState("idle");
-      setResult(code.data);
-      trackQRScanned({ method: "camera", content_type: detectContentType(code.data) });
-    } else {
-      animFrameRef.current = requestAnimationFrame(scanFrame);
     }
   }
 
@@ -162,9 +210,9 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
   // ── Copy ──────────────────────────────────────────────────────────────────
 
   async function handleCopy() {
-    if (!result) return;
+    if (!parsed) return;
     try {
-      await navigator.clipboard.writeText(result);
+      await navigator.clipboard.writeText(parsed.raw);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -172,13 +220,10 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
     }
   }
 
-  const isUrl = result ? /^https?:\/\//i.test(result) : false;
-
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
       {/* ── Left: input panel ── */}
       <div className="flex-1 space-y-4">
-        {/* Method tabs */}
         <div
           className="rounded-2xl p-6"
           style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}
@@ -254,6 +299,7 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
                       ref={videoRef}
                       className="w-full"
                       aria-label="Camera feed for QR code scanning"
+                      autoPlay
                       playsInline
                       muted
                     />
@@ -327,7 +373,7 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
             Result
           </h2>
 
-          {!result && !error && (
+          {!parsed && !error && (
             <div className="flex flex-col items-center gap-3 py-8" style={{ color: "var(--text-hint)" }}>
               <ScanIcon />
               <p className="text-center text-sm">
@@ -347,37 +393,9 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
             </div>
           )}
 
-          {result && (
+          {parsed && (
             <div className="space-y-4">
-              <div
-                className="rounded-xl p-4"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
-              >
-                {isUrl ? (
-                  <div className="space-y-2">
-                    <a
-                      href={result}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block break-all text-sm font-medium underline"
-                      style={{ color: "#06b6d4" }}
-                    >
-                      {result}
-                    </a>
-                    <p className="text-xs" style={{ color: "var(--text-hint)" }}>
-                      ⚠️ Always verify links before visiting
-                    </p>
-                  </div>
-                ) : (
-                  <p
-                    className="break-all text-sm"
-                    style={{ color: "var(--text-primary)" }}
-                    aria-label="Decoded QR code content"
-                  >
-                    {result}
-                  </p>
-                )}
-              </div>
+              <ResultCard parsed={parsed} />
 
               <div className="flex gap-2">
                 <button
@@ -390,7 +408,7 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => onGenerateFromResult(result)}
+                  onClick={() => onGenerateFromResult(parsed.raw)}
                   className="btn-cyan flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold"
                 >
                   <QRIcon />
@@ -411,6 +429,177 @@ export default function QRScanner({ onGenerateFromResult }: Props) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Result card ───────────────────────────────────────────────────────────────
+
+function ResultCard({ parsed }: { parsed: ParsedResult }) {
+  const rowStyle = "flex flex-col gap-0.5";
+  const labelStyle = "text-xs font-medium uppercase tracking-wide";
+  const valueStyle = "text-sm break-all";
+
+  if (parsed.type === "url") {
+    return (
+      <div
+        className="rounded-xl p-4 space-y-2"
+        style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+      >
+        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}>
+          URL
+        </span>
+        <a
+          href={parsed.raw}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block break-all text-sm font-medium underline"
+          style={{ color: "#06b6d4" }}
+        >
+          {parsed.raw}
+        </a>
+        <p className="text-xs" style={{ color: "var(--text-hint)" }}>
+          ⚠️ Always verify links before visiting
+        </p>
+      </div>
+    );
+  }
+
+  if (parsed.type === "upi") {
+    return (
+      <div
+        className="rounded-xl p-4 space-y-3"
+        style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+      >
+        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}>
+          UPI Payment
+        </span>
+        <div className="space-y-2">
+          <div className={rowStyle}>
+            <span className={labelStyle} style={{ color: "var(--text-hint)" }}>UPI ID</span>
+            <span className={valueStyle} style={{ color: "var(--text-primary)" }}>{parsed.upiId}</span>
+          </div>
+          {parsed.payeeName && (
+            <div className={rowStyle}>
+              <span className={labelStyle} style={{ color: "var(--text-hint)" }}>Payee</span>
+              <span className={valueStyle} style={{ color: "var(--text-primary)" }}>{parsed.payeeName}</span>
+            </div>
+          )}
+          {parsed.amount && (
+            <div className={rowStyle}>
+              <span className={labelStyle} style={{ color: "var(--text-hint)" }}>Amount</span>
+              <span className={valueStyle} style={{ color: "var(--text-primary)" }}>₹{parsed.amount}</span>
+            </div>
+          )}
+          {parsed.note && (
+            <div className={rowStyle}>
+              <span className={labelStyle} style={{ color: "var(--text-hint)" }}>Note</span>
+              <span className={valueStyle} style={{ color: "var(--text-primary)" }}>{parsed.note}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (parsed.type === "phone") {
+    return (
+      <div
+        className="rounded-xl p-4 space-y-2"
+        style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+      >
+        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}>
+          Phone Number
+        </span>
+        <a
+          href={parsed.raw}
+          className="block text-sm font-medium underline"
+          style={{ color: "#06b6d4" }}
+        >
+          {parsed.number}
+        </a>
+      </div>
+    );
+  }
+
+  if (parsed.type === "vcard") {
+    return (
+      <div
+        className="rounded-xl p-4 space-y-3"
+        style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+      >
+        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}>
+          Contact Card
+        </span>
+        <div className="space-y-2">
+          {parsed.fn && (
+            <div className={rowStyle}>
+              <span className={labelStyle} style={{ color: "var(--text-hint)" }}>Name</span>
+              <span className={valueStyle} style={{ color: "var(--text-primary)" }}>{parsed.fn}</span>
+            </div>
+          )}
+          {parsed.org && (
+            <div className={rowStyle}>
+              <span className={labelStyle} style={{ color: "var(--text-hint)" }}>Organisation</span>
+              <span className={valueStyle} style={{ color: "var(--text-primary)" }}>{parsed.org}</span>
+            </div>
+          )}
+          {parsed.tel && (
+            <div className={rowStyle}>
+              <span className={labelStyle} style={{ color: "var(--text-hint)" }}>Phone</span>
+              <a href={`tel:${parsed.tel}`} className="text-sm underline" style={{ color: "#06b6d4" }}>{parsed.tel}</a>
+            </div>
+          )}
+          {parsed.email && (
+            <div className={rowStyle}>
+              <span className={labelStyle} style={{ color: "var(--text-hint)" }}>Email</span>
+              <a href={`mailto:${parsed.email}`} className="text-sm underline break-all" style={{ color: "#06b6d4" }}>{parsed.email}</a>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (parsed.type === "geo") {
+    const mapsUrl = `https://www.google.com/maps?q=${parsed.lat},${parsed.lng}`;
+    return (
+      <div
+        className="rounded-xl p-4 space-y-2"
+        style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+      >
+        <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}>
+          Location
+        </span>
+        <p className="text-sm font-mono" style={{ color: "var(--text-primary)" }}>
+          {parsed.lat}, {parsed.lng}
+        </p>
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-xs underline"
+          style={{ color: "#06b6d4" }}
+        >
+          Open in Google Maps ↗
+        </a>
+      </div>
+    );
+  }
+
+  // plain text
+  return (
+    <div
+      className="rounded-xl p-4"
+      style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+    >
+      <p
+        className="break-all text-sm"
+        style={{ color: "var(--text-primary)" }}
+        aria-label="Decoded QR code content"
+      >
+        {parsed.raw}
+      </p>
     </div>
   );
 }
