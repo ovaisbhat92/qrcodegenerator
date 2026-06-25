@@ -11,6 +11,14 @@ export const metadata: Metadata = {
   title: "QR Code Generator — Free, Custom, Instant",
   description:
     "Generate custom QR codes for website URLs, plain text, phone numbers, contacts, and locations. Supports gradients, dot styles, corner styles, and logo embedding. Runs entirely in your browser.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-32x32.png",
+    apple: "/apple-touch-icon.png",
+  },
+  other: {
+    "theme-color": "#0a1628",
+  },
 };
 
 export default function RootLayout({
