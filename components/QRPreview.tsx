@@ -151,13 +151,11 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
         if (!isMountedRef.current || !containerRef.current) return;
         type QRCtor = new (opts: Record<string, unknown>) => QRInstance;
         const Ctor = QRCodeStyling as QRCtor;
-        if (!qrCodeRef.current) {
-          qrCodeRef.current = new Ctor(qrOptions);
-          containerRef.current.innerHTML = "";
-          qrCodeRef.current.append(containerRef.current);
-        } else {
-          qrCodeRef.current.update(qrOptions);
-        }
+        // Always recreate: qr-code-styling's update() deep-merges options,
+        // so removed keys (e.g. gradient cleared to null) are never unset.
+        qrCodeRef.current = new Ctor(qrOptions);
+        containerRef.current.innerHTML = "";
+        qrCodeRef.current.append(containerRef.current);
       });
     }, [data, qrOptions]);
 
