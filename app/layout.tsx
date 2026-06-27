@@ -17,6 +17,9 @@ export const metadata: Metadata = {
     shortcut: "/favicon-32x32.png",
     apple: "/apple-touch-icon.png",
   },
+  verification: {
+    google: "Foiqvscys0u84Y2-tSBOsiLOjUFbabR9tmfQ8tirSAA",
+  },
   other: {
     "theme-color": "#0a1628",
   },
