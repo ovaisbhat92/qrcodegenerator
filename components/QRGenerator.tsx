@@ -24,7 +24,7 @@ import {
 import QRScanner from "@/components/QRScanner";
 import QRTypeSelector from "@/components/QRTypeSelector";
 import CustomizationPanel from "@/components/CustomizationPanel";
-import QRPreview, { type QRPreviewHandle, type UpiCaption } from "@/components/QRPreview";
+import QRPreview, { type QRPreviewHandle, type UpiCaption, type QRCaption } from "@/components/QRPreview";
 import DownloadButtons from "@/components/DownloadButtons";
 
 const STORAGE_KEY = "qr-customization";
@@ -132,6 +132,44 @@ export default function QRGenerator({
     if (qrType !== "upi" || !upiInput.payeeName.trim()) return null;
     return { payeeName: upiInput.payeeName.trim(), amount: upiInput.amount.trim() };
   }, [qrType, upiInput.payeeName, upiInput.amount]);
+
+  const caption = useMemo((): QRCaption | null => {
+    if (!payload) return null;
+    switch (qrType) {
+      case "url": {
+        const display = payload.length > 40 ? payload.slice(0, 40) + "…" : payload;
+        return { mainText: display, labelText: "Scan this to visit website", iconType: "link" };
+      }
+      case "text": {
+        const display = textInput.length > 50 ? textInput.slice(0, 50) + "…" : textInput;
+        return { mainText: display, labelText: "Scan this to read message", iconType: "text" };
+      }
+      case "phone":
+        return { mainText: phoneInput.trim(), labelText: "Scan this to call me", iconType: "phone" };
+      case "vcard": {
+        if (!vcardInput.fullName.trim()) return null;
+        const title = vcardInput.jobTitle.trim();
+        const org = vcardInput.company.trim();
+        const secondaryText = title && org ? `${title} at ${org}` : title || org || undefined;
+        return { mainText: vcardInput.fullName.trim(), secondaryText, labelText: "Scan this to save contact", iconType: "vcard" };
+      }
+      case "location": {
+        let mainText: string;
+        if (locationInput.mode === "mapslink") {
+          mainText = "View on Google Maps";
+        } else {
+          const lat = parseFloat(locationInput.lat);
+          const lng = parseFloat(locationInput.lng);
+          const latDir = lat >= 0 ? "N" : "S";
+          const lngDir = lng >= 0 ? "E" : "W";
+          mainText = `${Math.abs(lat).toFixed(4)}° ${latDir}, ${Math.abs(lng).toFixed(4)}° ${lngDir}`;
+        }
+        return { mainText, labelText: "Scan this to find my location", iconType: "location" };
+      }
+      default:
+        return null; // upi uses upiCaption
+    }
+  }, [qrType, payload, textInput, phoneInput, vcardInput, locationInput]);
 
   const isDisabled = !validation?.valid || !payload;
   const [customizationOpen, setCustomizationOpen] = useState(false);
@@ -342,6 +380,7 @@ export default function QRGenerator({
                   qrType={qrType}
                   options={customization}
                   upiCaption={upiCaption}
+                  caption={caption}
                 />
               </div>
               <p

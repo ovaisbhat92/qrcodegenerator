@@ -31,11 +31,19 @@ export interface UpiCaption {
   amount: string;
 }
 
+export interface QRCaption {
+  mainText: string;
+  secondaryText?: string;
+  labelText: string;
+  iconType: "phone" | "link" | "location" | "vcard" | "text";
+}
+
 interface Props {
   data: string;
   qrType: QRType;
   options: CustomizationOptions;
   upiCaption?: UpiCaption | null;
+  caption?: QRCaption | null;
 }
 
 const QR_TYPE_LABELS: Record<QRType, string> = {
@@ -142,7 +150,8 @@ function formatAmountText(amount: string): string {
   return isNaN(n) ? `₹ ${amount}` : `₹ ${n.toFixed(2)}`;
 }
 
-// Builds a canvas with the QR image on top and a styled caption card below.
+// ── UPI caption canvas (unchanged) ───────────────────────────────────────────
+
 async function buildCaptionCanvas(
   qrDataUrl: string,
   qrSize: number,
@@ -157,21 +166,17 @@ async function buildCaptionCanvas(
   canvas.height = qrSize + captionH;
   const ctx = canvas.getContext("2d")!;
 
-  // QR
   const img = await loadImage(qrDataUrl);
   ctx.drawImage(img, 0, 0, qrSize, qrSize);
 
-  // Caption background
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, qrSize, qrSize, captionH);
 
-  // Cyan top border
   ctx.fillStyle = "#06b6d4";
   ctx.fillRect(0, qrSize, qrSize, borderH);
 
   const FONT = "-apple-system, BlinkMacSystemFont, Arial, sans-serif";
 
-  // Payee name
   const nameFontSize = Math.round(qrSize * 0.052);
   ctx.fillStyle = "#0a1628";
   ctx.font = `700 ${nameFontSize}px ${FONT}`;
@@ -179,7 +184,6 @@ async function buildCaptionCanvas(
   ctx.textBaseline = "top";
   ctx.fillText(caption.payeeName, qrSize / 2, qrSize + PAD, qrSize - PAD * 2);
 
-  // Amount
   const amtFontSize = Math.round(qrSize * 0.065);
   const hasAmt = caption.amount.trim() !== "";
   ctx.fillStyle = hasAmt ? "#06b6d4" : "#94a3b8";
@@ -187,12 +191,69 @@ async function buildCaptionCanvas(
   const amtText = hasAmt ? formatAmountText(caption.amount) : "Any Amount";
   ctx.fillText(amtText, qrSize / 2, qrSize + PAD + nameFontSize + 10, qrSize - PAD * 2);
 
-  // Scan to Pay label
   const labelFontSize = Math.max(10, Math.round(qrSize * 0.025));
   ctx.fillStyle = "#94a3b8";
   ctx.font = `600 ${labelFontSize}px ${FONT}`;
   ctx.textBaseline = "bottom";
   ctx.fillText("SCAN TO PAY", qrSize / 2, qrSize + captionH - Math.round(PAD * 0.7));
+
+  return canvas;
+}
+
+// ── Generic caption canvas (phone, url, location, vcard, text) ───────────────
+
+async function buildGenericCaptionCanvas(
+  qrDataUrl: string,
+  qrSize: number,
+  cap: QRCaption
+): Promise<HTMLCanvasElement> {
+  const hasSecondary = !!(cap.secondaryText?.trim());
+  const PAD = Math.round(qrSize * 0.065);
+  const captionH = Math.round(qrSize * (hasSecondary ? 0.34 : 0.27));
+  const borderH = Math.max(3, Math.round(qrSize * 0.006));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = qrSize;
+  canvas.height = qrSize + captionH;
+  const ctx = canvas.getContext("2d")!;
+
+  const img = await loadImage(qrDataUrl);
+  ctx.drawImage(img, 0, 0, qrSize, qrSize);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, qrSize, qrSize, captionH);
+
+  ctx.fillStyle = "#06b6d4";
+  ctx.fillRect(0, qrSize, qrSize, borderH);
+
+  const FONT = "-apple-system, BlinkMacSystemFont, Arial, sans-serif";
+  ctx.textAlign = "center";
+
+  let y = qrSize + PAD;
+
+  const mainFontSize = Math.round(qrSize * 0.052);
+  ctx.fillStyle = "#0a1628";
+  ctx.font = `700 ${mainFontSize}px ${FONT}`;
+  ctx.textBaseline = "top";
+  ctx.fillText(cap.mainText, qrSize / 2, y, qrSize - PAD * 2);
+  y += mainFontSize + 8;
+
+  if (hasSecondary) {
+    const secFontSize = Math.round(qrSize * 0.038);
+    ctx.fillStyle = "#64748b";
+    ctx.font = `400 ${secFontSize}px ${FONT}`;
+    ctx.fillText(cap.secondaryText!, qrSize / 2, y, qrSize - PAD * 2);
+  }
+
+  const labelFontSize = Math.max(10, Math.round(qrSize * 0.025));
+  ctx.fillStyle = "#06b6d4";
+  ctx.font = `600 ${labelFontSize}px ${FONT}`;
+  ctx.textBaseline = "bottom";
+  ctx.fillText(
+    cap.labelText.toUpperCase(),
+    qrSize / 2,
+    qrSize + captionH - Math.round(PAD * 0.6)
+  );
 
   return canvas;
 }
@@ -226,7 +287,7 @@ async function downloadCanvasAs(
 const PREVIEW_SIZE = 288;
 
 const QRPreview = forwardRef<QRPreviewHandle, Props>(
-  ({ data, qrType, options, upiCaption }, ref) => {
+  ({ data, qrType, options, upiCaption, caption }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const qrCodeRef = useRef<QRInstance | null>(null);
     const isMountedRef = useRef(true);
@@ -253,126 +314,165 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
       });
     }, [data, qrOptions]);
 
-    useImperativeHandle(ref, () => ({
-      downloadPNG: () => {
-        if (!qrCodeRef.current) return;
-        if (upiCaption?.payeeName) {
+    useImperativeHandle(ref, () => {
+      async function qrToDataUrl(): Promise<string> {
+        const blob = await qrCodeRef.current!.getRawData("png");
+        return blobToDataUrl(blob);
+      }
+
+      async function getCaptionCanvas(dataUrl: string): Promise<HTMLCanvasElement | null> {
+        if (upiCaption?.payeeName) return buildCaptionCanvas(dataUrl, options.size, upiCaption);
+        if (caption?.mainText) return buildGenericCaptionCanvas(dataUrl, options.size, caption);
+        return null;
+      }
+
+      const hasAnyCaption = !!(upiCaption?.payeeName || caption?.mainText);
+
+      return {
+        downloadPNG: () => {
+          if (!qrCodeRef.current) return;
+          if (!hasAnyCaption) { downloadPNG(qrCodeRef.current, qrType); return; }
           void (async () => {
-            const blob = await qrCodeRef.current!.getRawData("png");
-            const qrDataUrl = await blobToDataUrl(blob);
-            const canvas = await buildCaptionCanvas(qrDataUrl, options.size, upiCaption);
-            await downloadCanvasAs(canvas, `${getFilename(qrType)}.png`, "image/png");
+            const dataUrl = await qrToDataUrl();
+            const cnv = await getCaptionCanvas(dataUrl);
+            if (cnv) await downloadCanvasAs(cnv, `${getFilename(qrType)}.png`, "image/png");
           })();
-        } else {
-          downloadPNG(qrCodeRef.current, qrType);
-        }
-      },
-      downloadSVG: () => {
-        // SVG is for editing — caption excluded by design
-        if (qrCodeRef.current) downloadSVG(qrCodeRef.current, qrType);
-      },
-      downloadJPEG: () => {
-        if (!qrCodeRef.current) return;
-        if (upiCaption?.payeeName) {
+        },
+
+        downloadSVG: () => {
+          // SVG is for editing — caption excluded by design
+          if (qrCodeRef.current) downloadSVG(qrCodeRef.current, qrType);
+        },
+
+        downloadJPEG: () => {
+          if (!qrCodeRef.current) return;
+          if (!hasAnyCaption) { downloadJPEG(qrCodeRef.current, qrType); return; }
           void (async () => {
-            const blob = await qrCodeRef.current!.getRawData("png");
-            const qrDataUrl = await blobToDataUrl(blob);
-            const srcCanvas = await buildCaptionCanvas(qrDataUrl, options.size, upiCaption);
+            const dataUrl = await qrToDataUrl();
+            const src = await getCaptionCanvas(dataUrl);
+            if (!src) return;
             // JPEG doesn't support alpha — composite over white
-            const jpgCanvas = document.createElement("canvas");
-            jpgCanvas.width = srcCanvas.width;
-            jpgCanvas.height = srcCanvas.height;
-            const ctx = jpgCanvas.getContext("2d")!;
+            const jpg = document.createElement("canvas");
+            jpg.width = src.width; jpg.height = src.height;
+            const ctx = jpg.getContext("2d")!;
             ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, jpgCanvas.width, jpgCanvas.height);
-            ctx.drawImage(srcCanvas, 0, 0);
-            await downloadCanvasAs(jpgCanvas, `${getFilename(qrType)}.jpg`, "image/jpeg", 0.92);
+            ctx.fillRect(0, 0, jpg.width, jpg.height);
+            ctx.drawImage(src, 0, 0);
+            await downloadCanvasAs(jpg, `${getFilename(qrType)}.jpg`, "image/jpeg", 0.92);
           })();
-        } else {
-          downloadJPEG(qrCodeRef.current, qrType);
-        }
-      },
-      downloadWebP: () => {
-        if (!qrCodeRef.current) return;
-        if (upiCaption?.payeeName) {
+        },
+
+        downloadWebP: () => {
+          if (!qrCodeRef.current) return;
+          if (!hasAnyCaption) { downloadWebP(qrCodeRef.current, qrType); return; }
           void (async () => {
-            const blob = await qrCodeRef.current!.getRawData("png");
-            const qrDataUrl = await blobToDataUrl(blob);
-            const canvas = await buildCaptionCanvas(qrDataUrl, options.size, upiCaption);
-            await downloadCanvasAs(canvas, `${getFilename(qrType)}.webp`, "image/webp", 0.92);
+            const dataUrl = await qrToDataUrl();
+            const cnv = await getCaptionCanvas(dataUrl);
+            if (cnv) await downloadCanvasAs(cnv, `${getFilename(qrType)}.webp`, "image/webp", 0.92);
           })();
-        } else {
-          downloadWebP(qrCodeRef.current, qrType);
-        }
-      },
-      downloadPDF: async () => {
-        if (!qrCodeRef.current) return;
-        const blob = await qrCodeRef.current.getRawData("png");
-        const qrDataUrl = await blobToDataUrl(blob);
-        const { jsPDF } = await import("jspdf");
-        const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-        const pageW = 210;
-        const pageH = 297;
-        const imgSize = 140;
+        },
 
-        if (upiCaption?.payeeName) {
-          const captionH = 38;
-          const totalH = imgSize + captionH;
-          const qrX = (pageW - imgSize) / 2;
-          const qrY = (pageH - totalH) / 2;
-          const cY = qrY + imgSize;
+        downloadPDF: async () => {
+          if (!qrCodeRef.current) return;
+          const qrDataUrl = await qrToDataUrl();
+          const { jsPDF } = await import("jspdf");
+          const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+          const pageW = 210;
+          const pageH = 297;
+          const imgSize = 140;
 
-          pdf.addImage(qrDataUrl, "PNG", qrX, qrY, imgSize, imgSize);
+          if (upiCaption?.payeeName) {
+            // UPI PDF caption — unchanged
+            const captionH = 38;
+            const totalH = imgSize + captionH;
+            const qrX = (pageW - imgSize) / 2;
+            const qrY = (pageH - totalH) / 2;
+            const cY = qrY + imgSize;
 
-          // Caption background
-          pdf.setFillColor(255, 255, 255);
-          pdf.rect(qrX, cY, imgSize, captionH, "F");
+            pdf.addImage(qrDataUrl, "PNG", qrX, qrY, imgSize, imgSize);
 
-          // Cyan top border
-          pdf.setFillColor(6, 182, 212);
-          pdf.rect(qrX, cY, imgSize, 0.9, "F");
+            pdf.setFillColor(255, 255, 255);
+            pdf.rect(qrX, cY, imgSize, captionH, "F");
 
-          // Payee name
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(13);
-          pdf.setTextColor(10, 22, 40);
-          pdf.text(upiCaption.payeeName, pageW / 2, cY + 12, { align: "center" });
+            pdf.setFillColor(6, 182, 212);
+            pdf.rect(qrX, cY, imgSize, 0.9, "F");
 
-          // Amount — jsPDF standard fonts don't include ₹, use "Rs." fallback
-          const hasAmt = upiCaption.amount.trim() !== "";
-          const amtNum = hasAmt ? parseFloat(upiCaption.amount) : NaN;
-          const amtText = hasAmt
-            ? `Rs. ${isNaN(amtNum) ? upiCaption.amount : amtNum.toFixed(2)}`
-            : "Any Amount";
-          pdf.setFontSize(15);
-          if (hasAmt) {
-            pdf.setTextColor(6, 182, 212);
-          } else {
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(13);
+            pdf.setTextColor(10, 22, 40);
+            pdf.text(upiCaption.payeeName, pageW / 2, cY + 12, { align: "center" });
+
+            const hasAmt = upiCaption.amount.trim() !== "";
+            const amtNum = hasAmt ? parseFloat(upiCaption.amount) : NaN;
+            const amtText = hasAmt
+              ? `Rs. ${isNaN(amtNum) ? upiCaption.amount : amtNum.toFixed(2)}`
+              : "Any Amount";
+            pdf.setFontSize(15);
+            if (hasAmt) { pdf.setTextColor(6, 182, 212); }
+            else { pdf.setTextColor(148, 163, 184); }
+            pdf.text(amtText, pageW / 2, cY + 24, { align: "center" });
+
+            pdf.setFontSize(7);
             pdf.setTextColor(148, 163, 184);
+            pdf.text("SCAN TO PAY", pageW / 2, cY + 34, { align: "center" });
+
+          } else if (caption?.mainText) {
+            const hasSecondary = !!(caption.secondaryText?.trim());
+            const captionH = hasSecondary ? 44 : 34;
+            const totalH = imgSize + captionH;
+            const qrX = (pageW - imgSize) / 2;
+            const qrY = (pageH - totalH) / 2;
+            const cY = qrY + imgSize;
+
+            pdf.addImage(qrDataUrl, "PNG", qrX, qrY, imgSize, imgSize);
+
+            pdf.setFillColor(255, 255, 255);
+            pdf.rect(qrX, cY, imgSize, captionH, "F");
+
+            pdf.setFillColor(6, 182, 212);
+            pdf.rect(qrX, cY, imgSize, 0.9, "F");
+
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(13);
+            pdf.setTextColor(10, 22, 40);
+            pdf.text(caption.mainText, pageW / 2, cY + 11, { align: "center", maxWidth: imgSize - 8 });
+
+            if (hasSecondary) {
+              pdf.setFont("helvetica", "normal");
+              pdf.setFontSize(10);
+              pdf.setTextColor(100, 116, 139);
+              pdf.text(caption.secondaryText!, pageW / 2, cY + 21, { align: "center", maxWidth: imgSize - 8 });
+            }
+
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(7);
+            pdf.setTextColor(6, 182, 212);
+            pdf.text(
+              caption.labelText.toUpperCase(),
+              pageW / 2,
+              cY + captionH - 4,
+              { align: "center" }
+            );
+
+          } else {
+            pdf.addImage(qrDataUrl, "PNG", (pageW - imgSize) / 2, (pageH - imgSize) / 2, imgSize, imgSize);
           }
-          pdf.text(amtText, pageW / 2, cY + 24, { align: "center" });
 
-          // Scan to Pay
-          pdf.setFontSize(7);
-          pdf.setTextColor(148, 163, 184);
-          pdf.text("SCAN TO PAY", pageW / 2, cY + 34, { align: "center" });
-        } else {
-          pdf.addImage(qrDataUrl, "PNG", (pageW - imgSize) / 2, (pageH - imgSize) / 2, imgSize, imgSize);
-        }
+          pdf.save(`${getFilename(qrType)}.pdf`);
+        },
 
-        pdf.save(`${getFilename(qrType)}.pdf`);
-      },
-      copyToClipboard: async () => {
-        if (!qrCodeRef.current) return;
-        if (!navigator.clipboard || !("ClipboardItem" in window)) {
-          throw new Error("unsupported");
-        }
-        const blob = await qrCodeRef.current.getRawData("png");
-        await navigator.clipboard.write([
-          new ClipboardItem({ "image/png": blob }),
-        ]);
-      },
-    }), [qrType, upiCaption, options.size]);
+        copyToClipboard: async () => {
+          if (!qrCodeRef.current) return;
+          if (!navigator.clipboard || !("ClipboardItem" in window)) {
+            throw new Error("unsupported");
+          }
+          const blob = await qrCodeRef.current.getRawData("png");
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob }),
+          ]);
+        },
+      };
+    }, [qrType, upiCaption, caption, options.size]);
 
     const scale = options.size > PREVIEW_SIZE ? PREVIEW_SIZE / options.size : 1;
 
@@ -388,7 +488,9 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
       ? `QR code preview for ${QR_TYPE_LABELS[qrType]}`
       : "QR code preview — enter content above to generate";
 
-    const showCaption = !!(upiCaption?.payeeName && data);
+    const showUpiCaption = !!(upiCaption?.payeeName && data);
+    const showGenericCaption = !!(caption?.mainText && data);
+    const anyCaption = showUpiCaption || showGenericCaption;
 
     return (
       <div style={{ width: PREVIEW_SIZE }}>
@@ -400,7 +502,7 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
           style={{
             width: PREVIEW_SIZE,
             height: PREVIEW_SIZE,
-            borderRadius: showCaption ? "12px 12px 0 0" : "12px",
+            borderRadius: anyCaption ? "12px 12px 0 0" : "12px",
             boxShadow: "0 0 30px rgba(6,182,212,0.2), 0 0 0 1px rgba(255,255,255,0.06)",
             ...bgStyle,
           }}
@@ -423,8 +525,8 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
           )}
         </div>
 
-        {/* UPI caption card */}
-        {showCaption && upiCaption && (
+        {/* UPI caption card — unchanged */}
+        {showUpiCaption && upiCaption && (
           <div
             aria-label="UPI payment caption"
             style={{
@@ -477,6 +579,66 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
             </p>
           </div>
         )}
+
+        {/* Generic caption card (phone, url, text, location, vcard) */}
+        {showGenericCaption && caption && (
+          <div
+            aria-label={`${qrType} QR code caption`}
+            style={{
+              width: PREVIEW_SIZE,
+              background: "#ffffff",
+              borderTop: "3px solid #06b6d4",
+              borderRadius: "0 0 12px 12px",
+              boxShadow: "0 0 30px rgba(6,182,212,0.2), 0 0 0 1px rgba(255,255,255,0.06)",
+              padding: "10px 14px 10px",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "5px" }}>
+              <CaptionIcon type={caption.iconType} />
+            </div>
+            <p
+              style={{
+                color: "#0a1628",
+                fontWeight: 700,
+                fontSize: "15px",
+                lineHeight: 1.2,
+                marginBottom: caption.secondaryText ? "2px" : "4px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {caption.mainText}
+            </p>
+            {caption.secondaryText && (
+              <p
+                style={{
+                  color: "#64748b",
+                  fontSize: "12px",
+                  lineHeight: 1.2,
+                  marginBottom: "4px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {caption.secondaryText}
+              </p>
+            )}
+            <p
+              style={{
+                color: "#06b6d4",
+                fontSize: "10px",
+                fontWeight: 600,
+                letterSpacing: "0.10em",
+                textTransform: "uppercase",
+              }}
+            >
+              {caption.labelText}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -484,6 +646,61 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
 
 QRPreview.displayName = "QRPreview";
 export default QRPreview;
+
+// ── Caption icon ──────────────────────────────────────────────────────────────
+
+function CaptionIcon({ type }: { type: QRCaption["iconType"] }) {
+  const shared = {
+    width: 20,
+    height: 20,
+    viewBox: "0 0 24 24" as const,
+    fill: "none" as const,
+    stroke: "#06b6d4",
+    strokeWidth: 2 as const,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true as const,
+  };
+  switch (type) {
+    case "phone":
+      return (
+        <svg {...shared}>
+          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.18 1.18 2 2 0 012.17 0h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92v2z" />
+        </svg>
+      );
+    case "link":
+      return (
+        <svg {...shared}>
+          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+        </svg>
+      );
+    case "location":
+      return (
+        <svg {...shared}>
+          <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      );
+    case "vcard":
+      return (
+        <svg {...shared}>
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      );
+    case "text":
+      return (
+        <svg {...shared}>
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+// ── Placeholder ───────────────────────────────────────────────────────────────
 
 function Placeholder() {
   return (
