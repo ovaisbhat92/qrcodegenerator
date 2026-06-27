@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://qrcodegenerator.space/sitemap.xml",
+    sitemap: "https://www.freeqrcodemaker.in/sitemap.xml",
   };
 }

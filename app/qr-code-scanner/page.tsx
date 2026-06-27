@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   description:
     "Scan QR codes online directly in your browser — upload an image or use your camera. No app, no signup, 100% free. Decodes URLs, text, UPI, vCard, and more. Works on mobile and desktop.",
   alternates: {
-    canonical: "https://qrcodegenerator.space/qr-code-scanner",
+    canonical: "https://www.freeqrcodemaker.in/qr-code-scanner",
   },
   openGraph: {
     title: "Free QR Code Scanner — Scan QR Codes Online Without an App",
     description:
       "Scan QR codes online directly in your browser — upload an image or use your camera. No app, no signup, 100% free. Decodes URLs, text, UPI, vCard, and more. Works on mobile and desktop.",
-    url: "https://qrcodegenerator.space/qr-code-scanner",
+    url: "https://www.freeqrcodemaker.in/qr-code-scanner",
     siteName: "QR Code Generator",
     type: "website",
   },
@@ -23,9 +23,9 @@ const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.space/" },
-    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.space/qr-code-generator" },
-    { "@type": "ListItem", position: 3, name: "QR Code Scanner", item: "https://qrcodegenerator.space/qr-code-scanner" },
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://www.freeqrcodemaker.in/" },
+    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://www.freeqrcodemaker.in/qr-code-generator" },
+    { "@type": "ListItem", position: 3, name: "QR Code Scanner", item: "https://www.freeqrcodemaker.in/qr-code-scanner" },
   ],
 };
 

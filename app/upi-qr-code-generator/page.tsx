@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   description:
     "Generate a free UPI QR code for your UPI ID in seconds. Works with PhonePe, Google Pay, Paytm, BHIM, and all UPI apps. Customize colors, download PNG or SVG — no signup, no fees.",
   alternates: {
-    canonical: "https://qrcodegenerator.space/upi-qr-code-generator",
+    canonical: "https://www.freeqrcodemaker.in/upi-qr-code-generator",
   },
   openGraph: {
     title: "Free UPI QR Code Generator — Accept Payments Instantly",
     description:
       "Generate a free UPI QR code for your UPI ID in seconds. Works with PhonePe, Google Pay, Paytm, BHIM, and all UPI apps. Customize colors, download PNG or SVG — no signup, no fees.",
-    url: "https://qrcodegenerator.space/upi-qr-code-generator",
+    url: "https://www.freeqrcodemaker.in/upi-qr-code-generator",
     siteName: "QR Code Generator",
     type: "website",
   },
@@ -23,9 +23,9 @@ const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.space/" },
-    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.space/qr-code-generator" },
-    { "@type": "ListItem", position: 3, name: "UPI QR Code Generator", item: "https://qrcodegenerator.space/upi-qr-code-generator" },
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://www.freeqrcodemaker.in/" },
+    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://www.freeqrcodemaker.in/qr-code-generator" },
+    { "@type": "ListItem", position: 3, name: "UPI QR Code Generator", item: "https://www.freeqrcodemaker.in/upi-qr-code-generator" },
   ],
 };
 

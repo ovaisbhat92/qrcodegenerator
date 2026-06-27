@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   description:
     "Create a vCard QR code with your name, phone, email, company, job title, website, and address. Scan to save contact on any iPhone or Android. Free download — PNG, SVG, PDF.",
   alternates: {
-    canonical: "https://qrcodegenerator.space/vcard-qr-code-generator",
+    canonical: "https://www.freeqrcodemaker.in/vcard-qr-code-generator",
   },
   openGraph: {
     title: "vCard QR Code Generator — Share Contact Details Instantly",
     description:
       "Create a vCard QR code with your name, phone, email, company, job title, website, and address. Scan to save contact on any iPhone or Android. Free download — PNG, SVG, PDF.",
-    url: "https://qrcodegenerator.space/vcard-qr-code-generator",
+    url: "https://www.freeqrcodemaker.in/vcard-qr-code-generator",
     siteName: "QR Code Generator",
     type: "website",
   },
@@ -23,9 +23,9 @@ const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://qrcodegenerator.space/" },
-    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://qrcodegenerator.space/qr-code-generator" },
-    { "@type": "ListItem", position: 3, name: "vCard QR Code Generator", item: "https://qrcodegenerator.space/vcard-qr-code-generator" },
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://www.freeqrcodemaker.in/" },
+    { "@type": "ListItem", position: 2, name: "QR Code Generator", item: "https://www.freeqrcodemaker.in/qr-code-generator" },
+    { "@type": "ListItem", position: 3, name: "vCard QR Code Generator", item: "https://www.freeqrcodemaker.in/vcard-qr-code-generator" },
   ],
 };
 

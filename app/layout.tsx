@@ -8,7 +8,7 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://qrcodegenerator.space"),
+  metadataBase: new URL("https://www.freeqrcodemaker.in"),
   title: "QR Code Generator — Free, Custom, Instant",
   description:
     "Generate custom QR codes for website URLs, plain text, phone numbers, contacts, and locations. Supports gradients, dot styles, corner styles, and logo embedding. Runs entirely in your browser.",
