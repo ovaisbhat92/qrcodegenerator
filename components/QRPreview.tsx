@@ -32,7 +32,7 @@ export interface UpiCaption {
 }
 
 export interface QRCaption {
-  mainText: string;
+  mainText?: string;
   secondaryText?: string;
   labelText: string;
   iconType: "phone" | "link" | "location" | "vcard" | "text";
@@ -207,9 +207,13 @@ async function buildGenericCaptionCanvas(
   qrSize: number,
   cap: QRCaption
 ): Promise<HTMLCanvasElement> {
+  const hasMain = !!(cap.mainText?.trim());
   const hasSecondary = !!(cap.secondaryText?.trim());
   const PAD = Math.round(qrSize * 0.065);
-  const captionH = Math.round(qrSize * (hasSecondary ? 0.34 : 0.27));
+  // Height: label-only is compact; grows when main/secondary text present
+  const captionH = Math.round(
+    qrSize * (hasMain && hasSecondary ? 0.34 : hasMain ? 0.27 : 0.16)
+  );
   const borderH = Math.max(3, Math.round(qrSize * 0.006));
 
   const canvas = document.createElement("canvas");
@@ -229,31 +233,33 @@ async function buildGenericCaptionCanvas(
   const FONT = "-apple-system, BlinkMacSystemFont, Arial, sans-serif";
   ctx.textAlign = "center";
 
-  let y = qrSize + PAD;
+  if (hasMain) {
+    let y = qrSize + PAD;
 
-  const mainFontSize = Math.round(qrSize * 0.052);
-  ctx.fillStyle = "#0a1628";
-  ctx.font = `700 ${mainFontSize}px ${FONT}`;
-  ctx.textBaseline = "top";
-  ctx.fillText(cap.mainText, qrSize / 2, y, qrSize - PAD * 2);
-  y += mainFontSize + 8;
+    const mainFontSize = Math.round(qrSize * 0.052);
+    ctx.fillStyle = "#0a1628";
+    ctx.font = `700 ${mainFontSize}px ${FONT}`;
+    ctx.textBaseline = "top";
+    ctx.fillText(cap.mainText!, qrSize / 2, y, qrSize - PAD * 2);
+    y += mainFontSize + 8;
 
-  if (hasSecondary) {
-    const secFontSize = Math.round(qrSize * 0.038);
-    ctx.fillStyle = "#64748b";
-    ctx.font = `400 ${secFontSize}px ${FONT}`;
-    ctx.fillText(cap.secondaryText!, qrSize / 2, y, qrSize - PAD * 2);
+    if (hasSecondary) {
+      const secFontSize = Math.round(qrSize * 0.038);
+      ctx.fillStyle = "#64748b";
+      ctx.font = `400 ${secFontSize}px ${FONT}`;
+      ctx.fillText(cap.secondaryText!, qrSize / 2, y, qrSize - PAD * 2);
+    }
   }
 
   const labelFontSize = Math.max(10, Math.round(qrSize * 0.025));
   ctx.fillStyle = "#06b6d4";
   ctx.font = `600 ${labelFontSize}px ${FONT}`;
-  ctx.textBaseline = "bottom";
-  ctx.fillText(
-    cap.labelText.toUpperCase(),
-    qrSize / 2,
-    qrSize + captionH - Math.round(PAD * 0.6)
-  );
+  ctx.textBaseline = "middle";
+  const labelY = hasMain
+    ? qrSize + captionH - Math.round(PAD * 0.8)
+    : qrSize + captionH / 2;
+  ctx.textBaseline = hasMain ? "bottom" : "middle";
+  ctx.fillText(cap.labelText.toUpperCase(), qrSize / 2, labelY);
 
   return canvas;
 }
@@ -322,11 +328,11 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
 
       async function getCaptionCanvas(dataUrl: string): Promise<HTMLCanvasElement | null> {
         if (upiCaption?.payeeName) return buildCaptionCanvas(dataUrl, options.size, upiCaption);
-        if (caption?.mainText) return buildGenericCaptionCanvas(dataUrl, options.size, caption);
+        if (caption) return buildGenericCaptionCanvas(dataUrl, options.size, caption);
         return null;
       }
 
-      const hasAnyCaption = !!(upiCaption?.payeeName || caption?.mainText);
+      const hasAnyCaption = !!(upiCaption?.payeeName || caption);
 
       return {
         downloadPNG: () => {
@@ -416,9 +422,10 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
             pdf.setTextColor(148, 163, 184);
             pdf.text("SCAN TO PAY", pageW / 2, cY + 34, { align: "center" });
 
-          } else if (caption?.mainText) {
+          } else if (caption) {
+            const hasMain = !!(caption.mainText?.trim());
             const hasSecondary = !!(caption.secondaryText?.trim());
-            const captionH = hasSecondary ? 44 : 34;
+            const captionH = hasMain && hasSecondary ? 44 : hasMain ? 34 : 16;
             const totalH = imgSize + captionH;
             const qrX = (pageW - imgSize) / 2;
             const qrY = (pageH - totalH) / 2;
@@ -432,16 +439,18 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
             pdf.setFillColor(6, 182, 212);
             pdf.rect(qrX, cY, imgSize, 0.9, "F");
 
-            pdf.setFont("helvetica", "bold");
-            pdf.setFontSize(13);
-            pdf.setTextColor(10, 22, 40);
-            pdf.text(caption.mainText, pageW / 2, cY + 11, { align: "center", maxWidth: imgSize - 8 });
+            if (hasMain) {
+              pdf.setFont("helvetica", "bold");
+              pdf.setFontSize(13);
+              pdf.setTextColor(10, 22, 40);
+              pdf.text(caption.mainText!, pageW / 2, cY + 11, { align: "center", maxWidth: imgSize - 8 });
 
-            if (hasSecondary) {
-              pdf.setFont("helvetica", "normal");
-              pdf.setFontSize(10);
-              pdf.setTextColor(100, 116, 139);
-              pdf.text(caption.secondaryText!, pageW / 2, cY + 21, { align: "center", maxWidth: imgSize - 8 });
+              if (hasSecondary) {
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(10);
+                pdf.setTextColor(100, 116, 139);
+                pdf.text(caption.secondaryText!, pageW / 2, cY + 21, { align: "center", maxWidth: imgSize - 8 });
+              }
             }
 
             pdf.setFont("helvetica", "bold");
@@ -450,7 +459,7 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
             pdf.text(
               caption.labelText.toUpperCase(),
               pageW / 2,
-              cY + captionH - 4,
+              hasMain ? cY + captionH - 4 : cY + captionH / 2 + 2.5,
               { align: "center" }
             );
 
@@ -489,7 +498,7 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
       : "QR code preview — enter content above to generate";
 
     const showUpiCaption = !!(upiCaption?.payeeName && data);
-    const showGenericCaption = !!(caption?.mainText && data);
+    const showGenericCaption = !!(caption && data);
     const anyCaption = showUpiCaption || showGenericCaption;
 
     return (
@@ -594,24 +603,26 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
               textAlign: "center",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "5px" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: caption.mainText ? "5px" : "3px" }}>
               <CaptionIcon type={caption.iconType} />
             </div>
-            <p
-              style={{
-                color: "#0a1628",
-                fontWeight: 700,
-                fontSize: "15px",
-                lineHeight: 1.2,
-                marginBottom: caption.secondaryText ? "2px" : "4px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {caption.mainText}
-            </p>
-            {caption.secondaryText && (
+            {caption.mainText && (
+              <p
+                style={{
+                  color: "#0a1628",
+                  fontWeight: 700,
+                  fontSize: "15px",
+                  lineHeight: 1.2,
+                  marginBottom: caption.secondaryText ? "2px" : "4px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {caption.mainText}
+              </p>
+            )}
+            {caption.mainText && caption.secondaryText && (
               <p
                 style={{
                   color: "#64748b",
@@ -633,6 +644,7 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
                 fontWeight: 600,
                 letterSpacing: "0.10em",
                 textTransform: "uppercase",
+                marginBottom: caption.mainText ? undefined : "0",
               }}
             >
               {caption.labelText}

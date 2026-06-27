@@ -24,7 +24,7 @@ import {
 import QRScanner from "@/components/QRScanner";
 import QRTypeSelector from "@/components/QRTypeSelector";
 import CustomizationPanel from "@/components/CustomizationPanel";
-import QRPreview, { type QRPreviewHandle, type UpiCaption } from "@/components/QRPreview";
+import QRPreview, { type QRPreviewHandle, type UpiCaption, type QRCaption } from "@/components/QRPreview";
 import DownloadButtons from "@/components/DownloadButtons";
 
 const STORAGE_KEY = "qr-customization";
@@ -133,7 +133,19 @@ export default function QRGenerator({
     return { payeeName: upiInput.payeeName.trim(), amount: upiInput.amount.trim() };
   }, [qrType, upiInput.payeeName, upiInput.amount]);
 
-const isDisabled = !validation?.valid || !payload;
+  const caption = useMemo((): QRCaption | null => {
+    if (!payload || qrType === "upi") return null;
+    const map: Record<string, QRCaption> = {
+      url:      { labelText: "Scan this to visit website",    iconType: "link" },
+      text:     { labelText: "Scan this to read message",     iconType: "text" },
+      phone:    { labelText: "Scan this to call me",          iconType: "phone" },
+      vcard:    { labelText: "Scan this to save contact",     iconType: "vcard" },
+      location: { labelText: "Scan this to find my location", iconType: "location" },
+    };
+    return map[qrType] ?? null;
+  }, [qrType, payload]);
+
+  const isDisabled = !validation?.valid || !payload;
   const [customizationOpen, setCustomizationOpen] = useState(false);
 
   function handleScanResult(decoded: string) {
@@ -342,6 +354,7 @@ const isDisabled = !validation?.valid || !payload;
                   qrType={qrType}
                   options={customization}
                   upiCaption={upiCaption}
+                  caption={caption}
                 />
               </div>
               <p
