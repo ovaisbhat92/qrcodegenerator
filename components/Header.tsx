@@ -25,31 +25,35 @@ const logoSvg = (
 export default function Header() {
   const pathname = usePathname();
 
-  const navItems = NAV_LINKS.map(({ href, label }) => {
-    const active = href === "/" ? pathname === "/" : pathname === href || pathname?.startsWith(href + "/");
-    return (
-      <li key={href} style={{ flexShrink: 0 }}>
-        <Link
-          href={href}
-          aria-current={active ? "page" : undefined}
-          style={{
-            display: "block",
-            whiteSpace: "nowrap",
-            padding: "6px 10px",
-            fontSize: "12px",
-            fontWeight: 500,
-            borderRadius: "6px",
-            transition: "background 0.15s, color 0.15s",
-            ...(active
-              ? { color: "#06b6d4", background: "rgba(6,182,212,0.1)" }
-              : { color: "var(--text-secondary)" }),
-          }}
-        >
-          {label}
-        </Link>
-      </li>
-    );
-  });
+  function makeNavItems(variant: "desktop" | "mobile") {
+    const pad = variant === "desktop" ? "8px 16px" : "8px 14px";
+    const size = variant === "desktop" ? "15px" : "14px";
+    return NAV_LINKS.map(({ href, label }) => {
+      const active = href === "/" ? pathname === "/" : pathname === href || pathname?.startsWith(href + "/");
+      return (
+        <li key={href} style={{ flexShrink: 0 }}>
+          <Link
+            href={href}
+            aria-current={active ? "page" : undefined}
+            style={{
+              display: "block",
+              whiteSpace: "nowrap",
+              padding: pad,
+              fontSize: size,
+              fontWeight: 600,
+              borderRadius: "8px",
+              transition: "background 0.15s, color 0.15s",
+              ...(active
+                ? { color: "#fff", background: "#06b6d4" }
+                : { color: "rgba(255,255,255,0.8)" }),
+            }}
+          >
+            {label}
+          </Link>
+        </li>
+      );
+    });
+  }
 
   return (
     <header
@@ -75,7 +79,7 @@ export default function Header() {
             <span>QR Maker</span>
           </Link>
           <nav aria-label="Main navigation">
-            <ul className="flex items-center gap-1">{navItems}</ul>
+            <ul className="flex items-center gap-1">{makeNavItems("desktop")}</ul>
           </nav>
         </div>
 
@@ -111,7 +115,7 @@ export default function Header() {
                 minWidth: "max-content",
               }}
             >
-              {navItems}
+              {makeNavItems("mobile")}
             </ul>
           </nav>
         </div>
