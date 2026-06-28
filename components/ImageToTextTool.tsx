@@ -2,12 +2,13 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { setPrefillData } from "@/lib/qrPrefill";
 
 type Status = "idle" | "loading" | "processing" | "done" | "error";
 
 const ACCEPT = ".jpg,.jpeg,.png,.webp,.bmp,.gif";
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
-const QR_MAX_CHARS = 1500;
+const QR_MAX_CHARS = 1000;
 const QR_WARN_CHARS = 800;
 
 export default function ImageToTextTool() {
@@ -117,12 +118,7 @@ export default function ImageToTextTool() {
 
   const handleCreateQR = () => {
     const truncated = text.slice(0, QR_MAX_CHARS);
-    try {
-      sessionStorage.setItem("qr_prefill_text", truncated);
-      sessionStorage.setItem("qr_prefill_type", "text");
-    } catch {
-      // sessionStorage unavailable — nothing to do
-    }
+    setPrefillData("text", truncated);
     router.push("/");
   };
 
@@ -130,11 +126,12 @@ export default function ImageToTextTool() {
   const charCount = text.length;
   const willTruncate = charCount > QR_MAX_CHARS;
   const charWarning = willTruncate
-    ? "Text will be truncated to 1500 characters for QR generation"
+    ? "Text will be truncated to 1000 characters for QR generation"
     : charCount > QR_WARN_CHARS
     ? "Long text will produce a dense QR — consider trimming"
     : null;
   const charWarningLevel = willTruncate ? "red" : "orange";
+  const hasText = text.trim().length > 0;
 
   return (
     <div className="space-y-6">
@@ -211,7 +208,7 @@ export default function ImageToTextTool() {
       )}
 
       {/* Result */}
-      {status === "done" && text && (
+      {status === "done" && hasText && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
@@ -296,7 +293,7 @@ export default function ImageToTextTool() {
             </button>
             {willTruncate && (
               <p className="mt-2 text-xs" style={{ color: "var(--text-hint)" }}>
-                Text will be trimmed to 1,500 characters. Edit the textarea above before clicking if needed.
+                Text will be trimmed to 1,000 characters. Edit the textarea above before clicking if needed.
               </p>
             )}
           </div>

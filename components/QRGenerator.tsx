@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { trackQRGenerated } from "@/lib/analytics";
+import { getPrefillData, clearPrefillData } from "@/lib/qrPrefill";
 import { useTheme } from "next-themes";
 import type { QRType, CustomizationOptions, VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
 import { DEFAULT_CUSTOMIZATION } from "@/types/qr";
@@ -56,7 +57,7 @@ const DEFAULT_EMAIL: EmailInput = {
 };
 
 const DEFAULT_SMS: SmsInput = {
-  phone: "", message: "", format: "sms",
+  phone: "", message: "",
 };
 
 // ── localStorage persistence for customization ───────────────────────────────
@@ -206,19 +207,13 @@ export default function QRGenerator({
   const isDisabled = !validation?.valid || !payload;
   const [customizationOpen, setCustomizationOpen] = useState(false);
 
-  // Read sessionStorage prefill set by the image-to-text page.
+  // Read in-memory prefill set by the image-to-text page.
   useEffect(() => {
-    try {
-      const prefillText = sessionStorage.getItem("qr_prefill_text");
-      const prefillType = sessionStorage.getItem("qr_prefill_type");
-      if (prefillText && prefillType === "text") {
-        setQrType("text");
-        setTextInput(prefillText);
-        sessionStorage.removeItem("qr_prefill_text");
-        sessionStorage.removeItem("qr_prefill_type");
-      }
-    } catch {
-      // sessionStorage unavailable (e.g. private browsing)
+    const data = getPrefillData();
+    if (data && data.type === "text") {
+      setQrType("text");
+      setTextInput(data.content);
+      clearPrefillData();
     }
   }, []);
 
@@ -999,8 +994,7 @@ function EmailForm({
   const set = <K extends keyof EmailInput>(key: K, val: EmailInput[K]) =>
     onChange({ ...value, [key]: val });
 
-  const isTooLong = !!validation.error && validation.error.includes("too long");
-  const emailHasError = value.email !== "" && !validation.valid && !isTooLong;
+  const emailHasError = value.email !== "" && !validation.valid && !!validation.error;
 
   return (
     <div className="space-y-3">
@@ -1024,15 +1018,7 @@ function EmailForm({
           </p>
         )}
       </Field>
-      <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <label htmlFor="email-subject" className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-            Subject (optional)
-          </label>
-          <span className="text-xs" style={{ color: value.subject.length > 45 ? "#f59e0b" : "var(--text-hint)" }}>
-            {value.subject.length} / 50
-          </span>
-        </div>
+      <Field label="Subject (optional)" inputId="email-subject">
         <input
           id="email-subject"
           type="text"
@@ -1040,18 +1026,9 @@ function EmailForm({
           value={value.subject}
           onChange={(e) => set("subject", e.target.value)}
           className="themed-input"
-          maxLength={50}
         />
-      </div>
-      <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <label htmlFor="email-body" className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-            Body (optional)
-          </label>
-          <span className="text-xs" style={{ color: value.body.length > 85 ? "#f59e0b" : "var(--text-hint)" }}>
-            {value.body.length} / 100
-          </span>
-        </div>
+      </Field>
+      <Field label="Body (optional)" inputId="email-body">
         <textarea
           id="email-body"
           rows={3}
@@ -1059,19 +1036,14 @@ function EmailForm({
           value={value.body}
           onChange={(e) => set("body", e.target.value)}
           className="themed-input resize-none"
-          maxLength={100}
         />
-      </div>
-      {isTooLong && (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          ⛔ {validation.error}
-        </p>
-      )}
-      {validation.warning && (
-        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
-          ⚠️ {validation.warning}
-        </p>
-      )}
+      </Field>
+      <p
+        className="rounded-lg px-3 py-2 text-xs"
+        style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-hint)" }}
+      >
+        Note: Due to QR code size limits, only your email address is encoded in the QR. Subject and body fields are not included to ensure reliable scanning.
+      </p>
     </div>
   );
 }
@@ -1124,36 +1096,11 @@ function SmsForm({
           className="themed-input resize-none"
         />
       </Field>
-      <div className="space-y-1">
-        <p className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>SMS Format</p>
-        <div
-          role="group"
-          aria-label="SMS format"
-          className="flex gap-1 rounded-xl p-1"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)" }}
-        >
-          {(["sms", "smsto"] as const).map((fmt) => (
-            <button
-              key={fmt}
-              type="button"
-              onClick={() => set("format", fmt)}
-              aria-pressed={value.format === fmt}
-              className={[
-                "flex flex-1 items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium",
-                value.format === fmt ? "btn-cyan" : "",
-              ].join(" ")}
-              style={value.format === fmt ? {} : { color: "var(--text-secondary)" }}
-            >
-              {fmt === "sms" ? "Android / iOS" : "SMSTO"}
-            </button>
-          ))}
-        </div>
-      </div>
       <p
         className="flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs"
         style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-hint)" }}
       >
-        For best results, scan with Google Lens or your phone&apos;s default camera app (not a third-party QR scanner). Some QR scanner apps don&apos;t support SMS links. If Android/iOS doesn&apos;t work, try SMSTO.
+        Scan with Google Lens or your phone&apos;s default camera app for best results.
       </p>
     </div>
   );

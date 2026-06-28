@@ -10,8 +10,46 @@ const NAV_LINKS = [
   { href: "/bulk-qr-generator", label: "Bulk QR" },
 ];
 
+const logoSvg = (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none" />
+    <rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none" />
+    <rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none" />
+    <path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" fill="currentColor" stroke="none" />
+  </svg>
+);
+
 export default function Header() {
   const pathname = usePathname();
+
+  const navItems = NAV_LINKS.map(({ href, label }) => {
+    const active = href === "/" ? pathname === "/" : pathname === href || pathname?.startsWith(href + "/");
+    return (
+      <li key={href} style={{ flexShrink: 0 }}>
+        <Link
+          href={href}
+          aria-current={active ? "page" : undefined}
+          style={{
+            display: "block",
+            whiteSpace: "nowrap",
+            padding: "6px 10px",
+            fontSize: "12px",
+            fontWeight: 500,
+            borderRadius: "6px",
+            transition: "background 0.15s, color 0.15s",
+            ...(active
+              ? { color: "#06b6d4", background: "rgba(6,182,212,0.1)" }
+              : { color: "var(--text-secondary)" }),
+          }}
+        >
+          {label}
+        </Link>
+      </li>
+    );
+  });
 
   return (
     <header
@@ -24,55 +62,60 @@ export default function Header() {
       }}
     >
       <div className="mx-auto max-w-6xl px-4">
-        {/* Single row: logo + nav (nav scrolls horizontally on mobile) */}
-        <div className="flex items-center justify-between gap-3 py-3">
+
+        {/* ── Desktop (≥768px): single row — logo left, nav right ── */}
+        <div className="hidden items-center justify-between py-3 md:flex">
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2 text-sm font-bold tracking-tight"
+            className="flex items-center gap-2 text-sm font-bold tracking-tight"
             style={{ color: "#06b6d4" }}
             aria-label="QR Code Generator – Home"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none" />
-              <rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none" />
-              <rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none" />
-              <path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" fill="currentColor" stroke="none" />
-            </svg>
-            <span className="hidden sm:inline">QR Maker</span>
+            {logoSvg}
+            <span>QR Maker</span>
           </Link>
+          <nav aria-label="Main navigation">
+            <ul className="flex items-center gap-1">{navItems}</ul>
+          </nav>
+        </div>
 
-          {/* Horizontally scrollable nav — hides scrollbar visually */}
+        {/* ── Mobile (<768px): two rows — logo top, nav below ── */}
+        <div className="md:hidden">
+          {/* Row 1: logo */}
+          <div className="py-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-sm font-bold tracking-tight"
+              style={{ color: "#06b6d4" }}
+              aria-label="QR Code Generator – Home"
+            >
+              {logoSvg}
+              <span>QR Maker</span>
+            </Link>
+          </div>
+          {/* Row 2: scrollable nav */}
           <nav
             aria-label="Main navigation"
-            className="overflow-x-auto"
-            style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+            style={{
+              overflowX: "auto",
+              scrollbarWidth: "none",
+              WebkitOverflowScrolling: "touch",
+            } as React.CSSProperties}
           >
-            <ul className="flex min-w-max items-center gap-1">
-              {NAV_LINKS.map(({ href, label }) => {
-                const active = href === "/" ? pathname === "/" : pathname === href || pathname?.startsWith(href + "/");
-                return (
-                  <li key={href}>
-                    <Link
-                      href={href}
-                      className="block whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm"
-                      style={
-                        active
-                          ? { color: "#06b6d4", background: "rgba(6,182,212,0.1)" }
-                          : { color: "var(--text-secondary)" }
-                      }
-                      aria-current={active ? "page" : undefined}
-                    >
-                      {label}
-                    </Link>
-                  </li>
-                );
-              })}
+            <ul
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                gap: "4px",
+                padding: "4px 0 8px",
+                minWidth: "max-content",
+              }}
+            >
+              {navItems}
             </ul>
           </nav>
         </div>
+
       </div>
     </header>
   );

@@ -81,21 +81,11 @@ export function generateWhatsAppPayload(input: WhatsAppInput): string {
 }
 
 export function generateEmailPayload(input: EmailInput): string {
-  const email = input.email.trim();
-  const params: string[] = [];
-  if (input.subject.trim()) params.push(`subject=${encodeURIComponent(input.subject.trim())}`);
-  if (input.body.trim()) params.push(`body=${encodeURIComponent(input.body.trim())}`);
-  return params.length > 0 ? `mailto:${email}?${params.join("&")}` : `mailto:${email}`;
+  // Subject and body are intentionally excluded — keeping payload short ensures reliable scanning.
+  return `mailto:${input.email.trim()}`;
 }
 
 export function generateSmsPayload(input: SmsInput): string {
-  const digits = input.phone.trim().replace(/[\s\-().+]/g, "");
-  const phone = `+${digits}`;
-  if (input.format === "smsto") {
-    if (input.message.trim()) return `SMSTO:${phone}:${input.message.trim()}`;
-    return `SMSTO:${phone}`;
-  }
-  // Default: sms: scheme (Android/iOS compatible)
-  if (input.message.trim()) return `sms:${phone}?body=${encodeURIComponent(input.message.trim())}`;
-  return `sms:${phone}`;
+  const digits = input.phone.trim().replace(/\D/g, "");
+  return `SMSTO:${digits}:${input.message.trim()}`;
 }
