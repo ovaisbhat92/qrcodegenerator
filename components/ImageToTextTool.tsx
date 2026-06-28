@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 type Status = "idle" | "loading" | "processing" | "done" | "error";
 
 const ACCEPT = ".jpg,.jpeg,.png,.webp,.bmp,.gif";
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const QR_MAX_CHARS = 1500;
+const QR_WARN_CHARS = 800;
 
 export default function ImageToTextTool() {
   const router = useRouter();
@@ -114,10 +116,25 @@ export default function ImageToTextTool() {
   };
 
   const handleCreateQR = () => {
-    router.push(`/?type=text&content=${encodeURIComponent(text)}`);
+    const truncated = text.slice(0, QR_MAX_CHARS);
+    try {
+      sessionStorage.setItem("qr_prefill_text", truncated);
+      sessionStorage.setItem("qr_prefill_type", "text");
+    } catch {
+      // sessionStorage unavailable — nothing to do
+    }
+    router.push("/");
   };
 
   const isWorking = status === "loading" || status === "processing";
+  const charCount = text.length;
+  const willTruncate = charCount > QR_MAX_CHARS;
+  const charWarning = willTruncate
+    ? "Text will be truncated to 1500 characters for QR generation"
+    : charCount > QR_WARN_CHARS
+    ? "Long text will produce a dense QR — consider trimming"
+    : null;
+  const charWarningLevel = willTruncate ? "red" : "orange";
 
   return (
     <div className="space-y-6">
@@ -199,6 +216,9 @@ export default function ImageToTextTool() {
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
               Extracted Text
+              <span className="ml-2 font-normal text-xs" style={{ color: "var(--text-hint)" }}>
+                {charCount.toLocaleString()} characters
+              </span>
             </p>
             <div className="flex gap-2">
               <button
@@ -244,6 +264,20 @@ export default function ImageToTextTool() {
             }}
           />
 
+          {/* Character warning */}
+          {charWarning && (
+            <p
+              className="rounded-lg px-3 py-2 text-xs"
+              style={{
+                background: charWarningLevel === "red" ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.08)",
+                border: `1px solid ${charWarningLevel === "red" ? "rgba(239,68,68,0.3)" : "rgba(245,158,11,0.3)"}`,
+                color: charWarningLevel === "red" ? "#dc2626" : "#d97706",
+              }}
+            >
+              {charWarningLevel === "red" ? "⛔" : "⚠️"} {charWarning}
+            </p>
+          )}
+
           {/* Create QR Code */}
           <div
             className="rounded-xl p-4"
@@ -260,6 +294,11 @@ export default function ImageToTextTool() {
             >
               Create QR Code
             </button>
+            {willTruncate && (
+              <p className="mt-2 text-xs" style={{ color: "var(--text-hint)" }}>
+                Text will be trimmed to 1,500 characters. Edit the textarea above before clicking if needed.
+              </p>
+            )}
           </div>
         </div>
       )}

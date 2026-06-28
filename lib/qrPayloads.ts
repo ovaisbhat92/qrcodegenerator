@@ -89,10 +89,13 @@ export function generateEmailPayload(input: EmailInput): string {
 }
 
 export function generateSmsPayload(input: SmsInput): string {
-  // smsto: is the most universally compatible format for opening the SMS app on Android + iOS.
-  // Alternative: sms:+{phone}?body={encodedMessage} — swap the scheme below if needed.
   const digits = input.phone.trim().replace(/[\s\-().+]/g, "");
   const phone = `+${digits}`;
-  if (input.message.trim()) return `smsto:${phone}:${input.message.trim()}`;
-  return `smsto:${phone}`;
+  if (input.format === "smsto") {
+    if (input.message.trim()) return `SMSTO:${phone}:${input.message.trim()}`;
+    return `SMSTO:${phone}`;
+  }
+  // Default: sms: scheme (Android/iOS compatible)
+  if (input.message.trim()) return `sms:${phone}?body=${encodeURIComponent(input.message.trim())}`;
+  return `sms:${phone}`;
 }

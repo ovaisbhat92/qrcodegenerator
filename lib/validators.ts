@@ -124,12 +124,15 @@ export function validateEmail(input: EmailInput): ValidationResult {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { valid: false, error: "Please enter a valid email address (e.g. name@example.com)" };
   }
-  const mailtoLength = `mailto:${email}?subject=${encodeURIComponent(input.subject.trim())}&body=${encodeURIComponent(input.body.trim())}`.length;
-  if (mailtoLength > 300) {
-    return {
-      valid: true,
-      warning: "Your email QR data is too long and may not scan correctly. Please shorten the subject and/or body.",
-    };
+  const parts: string[] = [];
+  if (input.subject.trim()) parts.push(`subject=${encodeURIComponent(input.subject.trim())}`);
+  if (input.body.trim()) parts.push(`body=${encodeURIComponent(input.body.trim())}`);
+  const mailto = parts.length > 0 ? `mailto:${email}?${parts.join("&")}` : `mailto:${email}`;
+  if (mailto.length > 150) {
+    return { valid: false, error: "QR data too long — shorten subject/body for reliable scanning" };
+  }
+  if (mailto.length > 100) {
+    return { valid: true, warning: "QR may be hard to scan on some devices" };
   }
   return { valid: true };
 }

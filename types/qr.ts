@@ -49,6 +49,7 @@ export interface EmailInput {
 export interface SmsInput {
   phone: string;
   message: string;
+  format: "sms" | "smsto";
 }
 
 export interface GradientOptions {

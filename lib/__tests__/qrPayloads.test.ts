@@ -294,24 +294,32 @@ describe("generateEmailPayload", () => {
 
 // ── generateSmsPayload ────────────────────────────────────────────────────────
 
-const BASE_SMS: SmsInput = { phone: "+91 9876543210", message: "" };
+const BASE_SMS: SmsInput = { phone: "+91 9876543210", message: "", format: "sms" };
 
 describe("generateSmsPayload", () => {
-  it("produces a smsto: URI with only the phone number", () => {
-    expect(generateSmsPayload(BASE_SMS)).toBe("smsto:+919876543210");
+  it("produces a sms: URI with only the phone number (sms format)", () => {
+    expect(generateSmsPayload(BASE_SMS)).toBe("sms:+919876543210");
   });
 
-  it("appends message after colon when message is provided", () => {
+  it("appends encoded body when message is provided (sms format)", () => {
     const result = generateSmsPayload({ ...BASE_SMS, message: "Hi there" });
-    expect(result).toBe("smsto:+919876543210:Hi there");
+    expect(result).toBe("sms:+919876543210?body=Hi%20there");
   });
 
-  it("omits message when message is empty", () => {
-    expect(generateSmsPayload(BASE_SMS)).toBe("smsto:+919876543210");
+  it("omits body param when message is empty (sms format)", () => {
+    expect(generateSmsPayload(BASE_SMS)).toBe("sms:+919876543210");
   });
 
-  it("omits message when whitespace only", () => {
-    expect(generateSmsPayload({ ...BASE_SMS, message: "   " })).toBe("smsto:+919876543210");
+  it("omits body param when message is whitespace only (sms format)", () => {
+    expect(generateSmsPayload({ ...BASE_SMS, message: "   " })).toBe("sms:+919876543210");
+  });
+
+  it("produces SMSTO: URI with no message (smsto format)", () => {
+    expect(generateSmsPayload({ ...BASE_SMS, format: "smsto" })).toBe("SMSTO:+919876543210");
+  });
+
+  it("produces SMSTO: URI with message after colon (smsto format)", () => {
+    expect(generateSmsPayload({ ...BASE_SMS, message: "Hi there", format: "smsto" })).toBe("SMSTO:+919876543210:Hi there");
   });
 });
 

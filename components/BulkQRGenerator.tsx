@@ -113,7 +113,7 @@ function rowToPayload(type: BulkQRType, row: Record<string, string>): string {
     case "phone":    return generatePhonePayload(row.phone ?? "");
     case "whatsapp": return generateWhatsAppPayload({ countryCode: row.country_code ?? "91", phone: row.phone ?? "", message: row.message ?? "" });
     case "email":    return generateEmailPayload({ email: row.email ?? "", subject: row.subject ?? "", body: row.body ?? "" });
-    case "sms":      return generateSmsPayload({ phone: row.phone ?? "", message: row.message ?? "" });
+    case "sms":      return generateSmsPayload({ phone: row.phone ?? "", message: row.message ?? "", format: "sms" });
     case "upi":      return generateUpiPayload({ upiId: row.upi_id ?? "", payeeName: row.payee_name ?? "", amount: row.amount ?? "", note: row.note ?? "" });
     case "vcard":    return generateVCardPayload({ fullName: row.full_name ?? "", phone: row.phone ?? "", email: row.email ?? "", company: row.company ?? "", jobTitle: row.job_title ?? "", website: row.website ?? "", address: row.address ?? "" });
     case "location":
