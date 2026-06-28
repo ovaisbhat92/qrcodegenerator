@@ -110,7 +110,7 @@ function buildOptions(data: string, opts: CustomizationOptions): Record<string, 
     },
     cornersDotOptions: {
       type: mapCornerDot(cornerStyle),
-      color: cornerColor,
+      color: fgColor,
     },
   };
 
