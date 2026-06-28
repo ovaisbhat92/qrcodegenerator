@@ -499,7 +499,7 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
             backgroundImage: "repeating-conic-gradient(#e5e7eb 0% 25%, white 0% 50%)",
             backgroundSize: "16px 16px",
           }
-        : { backgroundColor: "#f9fafb" };
+        : { backgroundColor: options.bgColor };
 
     const ariaLabel = data
       ? `QR code preview for ${QR_TYPE_LABELS[qrType]}`
@@ -511,17 +511,29 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
 
     return (
       <div style={{ width: PREVIEW_SIZE }}>
-        {/* QR code + decorative corner lining (preview only) */}
+        {/* QR code + Google-style decorations (preview only) */}
         <div style={{ position: "relative", display: "inline-block" }}>
+
+          {/* Layer 0: floating background decorations — hidden on mobile < 480px */}
+          <div
+            className="hidden min-[480px]:block"
+            style={{ position: "absolute", top: -DECO_PAD, left: -DECO_PAD, zIndex: 0, pointerEvents: "none" }}
+          >
+            <FloatingDecorations />
+          </div>
+
+          {/* Layer 2: QR card */}
           <div
             role="img"
             aria-label={ariaLabel}
             className="overflow-hidden"
             style={{
+              position: "relative",
+              zIndex: 2,
               width: PREVIEW_SIZE,
               height: PREVIEW_SIZE,
               borderRadius: anyCaption ? "12px 12px 0 0" : "12px",
-              boxShadow: "0 0 30px rgba(6,182,212,0.2), 0 0 0 1px rgba(255,255,255,0.06)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
               ...bgStyle,
             }}
           >
@@ -542,7 +554,9 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
               </div>
             )}
           </div>
-          <CornerLining />
+
+          {/* Layer 3: Google-style colored corner brackets */}
+          <GoogleCornerBrackets />
         </div>
 
         {/* UPI caption card — unchanged */}
@@ -723,55 +737,89 @@ function CaptionIcon({ type }: { type: QRCaption["iconType"] }) {
   }
 }
 
-// ── Corner lining (decorative preview-only frame) ─────────────────────────────
+// ── Google-style decorations (preview-only) ───────────────────────────────────
 
-const CL_PAD = 10;  // SVG extends this many px beyond the QR card on each side
-const CL_ARM = 22;  // length of each L-arm
-const CL_GAP = 3;   // gap between card edge and accent line
-const CL_T   = 3;   // stroke thickness
+const DECO_PAD = 48;  // space on each side of the card for decorations
+const C_OFF = 8;      // bracket offset outside card corner
+const C_ARM = 30;     // bracket arm length
+const C_SW  = 5.5;   // bracket stroke width
 
-function CornerLining() {
-  const total = PREVIEW_SIZE + CL_PAD * 2;
-  // corner accent point (where two arms meet) in SVG space
-  const c  = CL_PAD - CL_GAP;          // near-side corners (TL / BL / etc.)
-  const cR = total - c;                 // far-side corners
-  const a  = CL_ARM;
+// SVG coordinate helpers — card occupies (DECO_PAD, DECO_PAD) to
+// (DECO_PAD+PREVIEW_SIZE, DECO_PAD+PREVIEW_SIZE) = (48,48)→(336,336)
+const _C  = DECO_PAD;                    // 48
+const _CE = DECO_PAD + PREVIEW_SIZE;     // 336
+const _MX = DECO_PAD + PREVIEW_SIZE / 2; // 192
+const _MY = DECO_PAD + PREVIEW_SIZE / 2; // 192
+const _T  = PREVIEW_SIZE + DECO_PAD * 2; // 384
 
+// Bracket corner points (just outside card corners)
+const TL = { x: _C  - C_OFF, y: _C  - C_OFF }; // (40, 40)
+const TR = { x: _CE + C_OFF, y: _C  - C_OFF }; // (344, 40)
+const BL = { x: _C  - C_OFF, y: _CE + C_OFF }; // (40, 344)
+const BR = { x: _CE + C_OFF, y: _CE + C_OFF }; // (344, 344)
+
+function GoogleCornerBrackets() {
   return (
     <svg
       aria-hidden="true"
-      width={total}
-      height={total}
-      style={{
-        position: "absolute",
-        top: -CL_PAD,
-        left: -CL_PAD,
-        pointerEvents: "none",
-        overflow: "visible",
-      }}
+      width={_T}
+      height={_T}
+      style={{ position: "absolute", top: -DECO_PAD, left: -DECO_PAD, pointerEvents: "none", zIndex: 3, overflow: "visible" }}
     >
-      <defs>
-        <linearGradient
-          id="qr-corner-grad"
-          gradientUnits="userSpaceOnUse"
-          x1="0" y1="0" x2={total} y2={total}
-        >
-          <stop offset="0%" stopColor="#06b6d4" />
-          <stop offset="100%" stopColor="#7c3aed" />
-        </linearGradient>
-      </defs>
-      {/* Top-left */}
-      <polyline points={`${c + a},${c} ${c},${c} ${c},${c + a}`}
-        fill="none" stroke="url(#qr-corner-grad)" strokeWidth={CL_T} strokeLinecap="round" strokeLinejoin="round" />
-      {/* Top-right */}
-      <polyline points={`${cR - a},${c} ${cR},${c} ${cR},${c + a}`}
-        fill="none" stroke="url(#qr-corner-grad)" strokeWidth={CL_T} strokeLinecap="round" strokeLinejoin="round" />
-      {/* Bottom-left */}
-      <polyline points={`${c + a},${cR} ${c},${cR} ${c},${cR - a}`}
-        fill="none" stroke="url(#qr-corner-grad)" strokeWidth={CL_T} strokeLinecap="round" strokeLinejoin="round" />
-      {/* Bottom-right */}
-      <polyline points={`${cR - a},${cR} ${cR},${cR} ${cR},${cR - a}`}
-        fill="none" stroke="url(#qr-corner-grad)" strokeWidth={CL_T} strokeLinecap="round" strokeLinejoin="round" />
+      {/* TL — Google green */}
+      <path d={`M ${TL.x + C_ARM} ${TL.y} Q ${TL.x} ${TL.y} ${TL.x} ${TL.y + C_ARM}`}
+        fill="none" stroke="#34A853" strokeWidth={C_SW} strokeLinecap="round" strokeLinejoin="round" />
+      {/* TR — Google yellow */}
+      <path d={`M ${TR.x - C_ARM} ${TR.y} Q ${TR.x} ${TR.y} ${TR.x} ${TR.y + C_ARM}`}
+        fill="none" stroke="#FBBC04" strokeWidth={C_SW} strokeLinecap="round" strokeLinejoin="round" />
+      {/* BL — Google blue */}
+      <path d={`M ${BL.x + C_ARM} ${BL.y} Q ${BL.x} ${BL.y} ${BL.x} ${BL.y - C_ARM}`}
+        fill="none" stroke="#4285F4" strokeWidth={C_SW} strokeLinecap="round" strokeLinejoin="round" />
+      {/* BR — Google red */}
+      <path d={`M ${BR.x - C_ARM} ${BR.y} Q ${BR.x} ${BR.y} ${BR.x} ${BR.y - C_ARM}`}
+        fill="none" stroke="#EA4335" strokeWidth={C_SW} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FloatingDecorations() {
+  return (
+    <svg aria-hidden="true" width={_T} height={_T} style={{ display: "block", overflow: "visible" }}>
+      {/* ── Curved lines ── */}
+      {/* Left — blue */}
+      <path d={`M 15 ${_C + 100} Q -5 ${_MY} 15 ${_CE - 100}`}
+        fill="none" stroke="#4285F4" strokeWidth="3.5" opacity="0.75" strokeLinecap="round" />
+      {/* Right — red */}
+      <path d={`M ${_T - 15} ${_C + 100} Q ${_T + 5} ${_MY} ${_T - 15} ${_CE - 100}`}
+        fill="none" stroke="#EA4335" strokeWidth="3.5" opacity="0.75" strokeLinecap="round" />
+      {/* Top — green */}
+      <path d={`M ${_C + 64} 20 Q ${_MX} 4 ${_CE - 64} 20`}
+        fill="none" stroke="#34A853" strokeWidth="3.5" opacity="0.75" strokeLinecap="round" />
+      {/* Bottom — yellow */}
+      <path d={`M ${_C + 64} ${_T - 20} Q ${_MX} ${_T - 4} ${_CE - 64} ${_T - 20}`}
+        fill="none" stroke="#FBBC04" strokeWidth="3.5" opacity="0.75" strokeLinecap="round" />
+      {/* Left accent — yellow */}
+      <path d={`M 8 ${_C + 68} Q -8 ${_C + 80} 8 ${_C + 92}`}
+        fill="none" stroke="#FBBC04" strokeWidth="2.5" opacity="0.65" strokeLinecap="round" />
+      {/* Right accent — green */}
+      <path d={`M ${_T - 8} ${_CE - 92} Q ${_T + 8} ${_CE - 80} ${_T - 8} ${_CE - 68}`}
+        fill="none" stroke="#34A853" strokeWidth="2.5" opacity="0.65" strokeLinecap="round" />
+
+      {/* ── Floating dots ── */}
+      {/* Top-right cluster */}
+      <circle cx={_CE - 12} cy={_C - 22} r="3"   fill="#EA4335" opacity="0.8" />
+      <circle cx={_CE + 4}  cy={_C - 30} r="2"   fill="#4285F4" opacity="0.75" />
+      <circle cx={_CE + 14} cy={_C - 14} r="2.5" fill="#FBBC04" opacity="0.8" />
+      {/* Bottom-left cluster */}
+      <circle cx={_C + 12}  cy={_CE + 22} r="3"   fill="#34A853" opacity="0.8" />
+      <circle cx={_C - 4}   cy={_CE + 30} r="2"   fill="#EA4335" opacity="0.75" />
+      <circle cx={_C + 24}  cy={_CE + 34} r="2.5" fill="#4285F4" opacity="0.8" />
+      {/* Top-left cluster */}
+      <circle cx={_C - 20}  cy={_C + 12}  r="2"   fill="#FBBC04" opacity="0.75" />
+      <circle cx={_C - 30}  cy={_C + 26}  r="2.5" fill="#34A853" opacity="0.75" />
+      {/* Bottom-right cluster */}
+      <circle cx={_CE + 20} cy={_CE - 12} r="2"   fill="#FBBC04" opacity="0.75" />
+      <circle cx={_CE + 30} cy={_CE - 26} r="2.5" fill="#34A853" opacity="0.75" />
     </svg>
   );
 }
