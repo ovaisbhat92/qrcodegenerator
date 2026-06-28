@@ -40,7 +40,7 @@ export function generateVCardPayload(vcard: VCardInput): string {
   ];
   if (vcard.company)  lines.push(`ORG:${escapeVCard(vcard.company)}`);
   if (vcard.jobTitle) lines.push(`TITLE:${escapeVCard(vcard.jobTitle)}`);
-  if (vcard.phone)    lines.push(`TEL:${vcard.phone.trim()}`);
+  if (vcard.phone)    lines.push(`TEL;TYPE=CELL:${vcard.phone.trim()}`);
   if (vcard.email)    lines.push(`EMAIL:${vcard.email.trim()}`);
   if (vcard.website)  lines.push(`URL:${vcard.website.trim()}`);
   if (vcard.address)  lines.push(`ADR:;;${escapeVCard(vcard.address)};;;;`);
@@ -54,14 +54,6 @@ export function generateLocationPayload(location: LocationInput): string {
     return location.mapsLink.trim();
   }
   return `https://www.google.com/maps?q=${location.lat.trim()},${location.lng.trim()}`;
-}
-
-export function generateImageTextPayload(text: string): string {
-  return stripControlChars(text);
-}
-
-export function generatePdfTextPayload(text: string): string {
-  return stripControlChars(text);
 }
 
 export function generateUpiPayload(upi: UpiInput): string {
@@ -89,7 +81,7 @@ export function generateEmailPayload(input: EmailInput): string {
 }
 
 export function generateSmsPayload(input: SmsInput): string {
-  const phone = input.phone.trim();
+  const phone = input.phone.trim().replace(/[\s\-().]/g, "");
   if (input.message.trim()) return `sms:${phone}?body=${encodeURIComponent(input.message.trim())}`;
   return `sms:${phone}`;
 }

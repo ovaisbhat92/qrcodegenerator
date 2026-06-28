@@ -1,6 +1,6 @@
 export type QRType =
   | "url" | "text" | "phone" | "vcard" | "location" | "upi"
-  | "image-ocr" | "pdf-text" | "whatsapp" | "email" | "sms";
+  | "whatsapp" | "email" | "sms";
 
 export type DotStyle = "square" | "rounded" | "dots" | "extra-rounded";
 

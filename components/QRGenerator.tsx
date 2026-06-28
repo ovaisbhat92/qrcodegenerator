@@ -12,8 +12,6 @@ import {
   generateVCardPayload,
   generateLocationPayload,
   generateUpiPayload,
-  generateImageTextPayload,
-  generatePdfTextPayload,
   generateWhatsAppPayload,
   generateEmailPayload,
   generateSmsPayload,
@@ -25,15 +23,10 @@ import {
   validateVCard,
   validateLocation,
   validateUpi,
-  validateImageText,
-  validatePdfText,
   validateWhatsApp,
   validateEmail,
   validateSms,
 } from "@/lib/validators";
-import ImageOcrInput from "@/components/ImageOcrInput";
-import PdfTextInput from "@/components/PdfTextInput";
-import QRScanner from "@/components/QRScanner";
 import QRTypeSelector from "@/components/QRTypeSelector";
 import CustomizationPanel from "@/components/CustomizationPanel";
 import QRPreview, { type QRPreviewHandle, type UpiCaption, type QRCaption } from "@/components/QRPreview";
@@ -106,12 +99,9 @@ function usePersistedCustomization() {
 
 export default function QRGenerator({
   defaultType = "url",
-  defaultMode = "generate",
 }: {
   defaultType?: QRType;
-  defaultMode?: "generate" | "scan";
 }) {
-  const [appMode, setAppMode] = useState<"generate" | "scan">(defaultMode);
   const [qrType, setQrType] = useState<QRType>(defaultType);
   const [urlInput, setUrlInput] = useState("");
   const [textInput, setTextInput] = useState("");
@@ -119,8 +109,6 @@ export default function QRGenerator({
   const [vcardInput, setVcardInput] = useState<VCardInput>(DEFAULT_VCARD);
   const [locationInput, setLocationInput] = useState<LocationInput>(DEFAULT_LOCATION);
   const [upiInput, setUpiInput] = useState<UpiInput>(DEFAULT_UPI);
-  const [imageOcrText, setImageOcrText] = useState("");
-  const [pdfText, setPdfText] = useState("");
   const [whatsappInput, setWhatsappInput] = useState<WhatsAppInput>(DEFAULT_WHATSAPP);
   const [emailInput, setEmailInput] = useState<EmailInput>(DEFAULT_EMAIL);
   const [smsInput, setSmsInput] = useState<SmsInput>(DEFAULT_SMS);
@@ -154,14 +142,6 @@ export default function QRGenerator({
         const v = validateUpi(upiInput);
         return { validation: v, payload: v.valid ? generateUpiPayload(upiInput) : "" };
       }
-      case "image-ocr": {
-        const v = validateImageText(imageOcrText);
-        return { validation: v, payload: v.valid ? generateImageTextPayload(imageOcrText) : "" };
-      }
-      case "pdf-text": {
-        const v = validatePdfText(pdfText);
-        return { validation: v, payload: v.valid ? generatePdfTextPayload(pdfText) : "" };
-      }
       case "whatsapp": {
         const v = validateWhatsApp(whatsappInput);
         return { validation: v, payload: v.valid ? generateWhatsAppPayload(whatsappInput) : "" };
@@ -175,7 +155,7 @@ export default function QRGenerator({
         return { validation: v, payload: v.valid ? generateSmsPayload(smsInput) : "" };
       }
     }
-  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput, upiInput, imageOcrText, pdfText, whatsappInput, emailInput, smsInput]);
+  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput, upiInput, whatsappInput, emailInput, smsInput]);
 
   const upiCaption = useMemo((): UpiCaption | null => {
     if (qrType !== "upi" || !upiInput.payeeName.trim()) return null;
@@ -190,18 +170,6 @@ export default function QRGenerator({
       phone:    { labelText: "Scan this to call me",          iconType: "phone" },
       vcard:    { labelText: "Scan this to save contact",     iconType: "vcard" },
       location: { labelText: "Scan this to find my location", iconType: "location" },
-      "image-ocr": {
-        mainText: imageOcrText.length > 40
-          ? imageOcrText.slice(0, 40) + "…"
-          : imageOcrText,
-        labelText: "Scan this to read extracted text",
-        iconType: "image-ocr",
-      },
-      "pdf-text": {
-        mainText: pdfText.length > 40 ? pdfText.slice(0, 40) + "…" : pdfText,
-        labelText: "Scan this to read document text",
-        iconType: "pdf-text",
-      },
       whatsapp: {
         mainText: `+${whatsappInput.countryCode} ${whatsappInput.phone}`,
         labelText: "Scan this to chat on WhatsApp",
@@ -220,21 +188,10 @@ export default function QRGenerator({
       },
     };
     return map[qrType] ?? null;
-  }, [qrType, payload, imageOcrText, pdfText, whatsappInput, emailInput, smsInput]);
+  }, [qrType, payload, whatsappInput, emailInput, smsInput]);
 
   const isDisabled = !validation?.valid || !payload;
   const [customizationOpen, setCustomizationOpen] = useState(false);
-
-  function handleScanResult(decoded: string) {
-    if (/^https?:\/\//i.test(decoded)) {
-      setQrType("url");
-      setUrlInput(decoded);
-    } else {
-      setQrType("text");
-      setTextInput(decoded);
-    }
-    setAppMode("generate");
-  }
 
   // Fire qr_generated 1.5 s after the payload stabilises — avoids a flood
   // of events while the user is still typing. Structural params only; no content.
@@ -313,40 +270,6 @@ export default function QRGenerator({
         </p>
       </div>
 
-      {/* ── Generate / Scan mode toggle ── */}
-      <div
-        role="group"
-        aria-label="App mode"
-        className="mb-8 flex gap-1 rounded-xl p-1"
-        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)" }}
-      >
-        <button
-          type="button"
-          aria-pressed={appMode === "generate"}
-          onClick={() => setAppMode("generate")}
-          className={["flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
-            appMode === "generate" ? "btn-cyan" : ""].join(" ")}
-          style={appMode === "generate" ? {} : { color: "var(--text-secondary)" }}
-        >
-          <QRGenerateIcon /> Generate QR Code
-        </button>
-        <button
-          type="button"
-          aria-pressed={appMode === "scan"}
-          onClick={() => setAppMode("scan")}
-          className={["flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
-            appMode === "scan" ? "btn-cyan" : ""].join(" ")}
-          style={appMode === "scan" ? {} : { color: "var(--text-secondary)" }}
-        >
-          <QRScanIcon /> Scan QR Code
-        </button>
-      </div>
-
-      {appMode === "scan" && (
-        <QRScanner onGenerateFromResult={handleScanResult} />
-      )}
-
-      {appMode === "generate" && (
       <div className="flex flex-col gap-8 lg:flex-row">
         {/* ── Left column ── */}
         <div className="flex-1 space-y-6">
@@ -373,12 +296,6 @@ export default function QRGenerator({
               )}
               {qrType === "upi" && (
                 <UpiForm value={upiInput} onChange={setUpiInput} validation={validation} />
-              )}
-              {qrType === "image-ocr" && (
-                <ImageOcrInput value={imageOcrText} onChange={setImageOcrText} />
-              )}
-              {qrType === "pdf-text" && (
-                <PdfTextInput value={pdfText} onChange={setPdfText} />
               )}
               {qrType === "whatsapp" && (
                 <WhatsAppForm value={whatsappInput} onChange={setWhatsappInput} validation={validation} />
@@ -472,7 +389,6 @@ export default function QRGenerator({
           </div>
         </div>
       </div>
-      )}
     </div>
   );
 }
@@ -539,29 +455,6 @@ function ChevronDownIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
       <polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function QRGenerateIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none" />
-      <rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none" />
-      <rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none" />
-      <path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function QRScanIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path d="M3 7V5a2 2 0 012-2h2" strokeLinecap="round" /><path d="M17 3h2a2 2 0 012 2v2" strokeLinecap="round" />
-      <path d="M21 17v2a2 2 0 01-2 2h-2" strokeLinecap="round" /><path d="M7 21H5a2 2 0 01-2-2v-2" strokeLinecap="round" />
-      <line x1="3" y1="12" x2="21" y2="12" strokeLinecap="round" />
     </svg>
   );
 }
@@ -1020,13 +913,13 @@ function WhatsAppForm({
           <select
             value={value.countryCode}
             onChange={(e) => set("countryCode", e.target.value)}
-            className="themed-input w-auto shrink-0"
-            style={{ minWidth: "140px" }}
+            className="themed-input shrink-0"
+            style={{ width: "110px", minWidth: "110px", maxWidth: "120px" }}
             aria-label="Country code"
           >
             {COUNTRY_CODES.map((c) => (
               <option key={c.code} value={c.code}>
-                {c.flag} +{c.code} {c.name}
+                {c.flag} +{c.code}
               </option>
             ))}
           </select>
@@ -1078,6 +971,8 @@ function EmailForm({
     onChange({ ...value, [key]: val });
 
   const emailHasError = value.email !== "" && !validation.valid && !!validation.error;
+  const combinedLength = value.subject.length + value.body.length;
+  const showLengthWarning = combinedLength > 200;
 
   return (
     <div className="space-y-3">
@@ -1121,6 +1016,11 @@ function EmailForm({
           className="themed-input resize-none"
         />
       </Field>
+      {showLengthWarning && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+          ⚠️ Your subject and body are long — the QR code may be hard to scan. Consider shortening them.
+        </p>
+      )}
     </div>
   );
 }
@@ -1173,6 +1073,12 @@ function SmsForm({
           className="themed-input resize-none"
         />
       </Field>
+      <p
+        className="flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs"
+        style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-hint)" }}
+      >
+        Note: SMS QR codes open the default messages app on most Android and iOS devices. Behavior may vary by device and operating system.
+      </p>
     </div>
   );
 }

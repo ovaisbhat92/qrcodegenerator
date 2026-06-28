@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { trackQRScanned } from "@/lib/analytics";
 
 interface Props {
-  onGenerateFromResult: (content: string) => void;
+  onGenerateFromResult?: (content: string) => void;
 }
 
 type Method = "upload" | "camera";

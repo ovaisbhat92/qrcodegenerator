@@ -119,7 +119,7 @@ describe("generateVCardPayload", () => {
 
   it("includes TEL when phone is provided", () => {
     const result = generateVCardPayload({ ...BASE_VCARD, phone: "+1 555-000-0001" });
-    expect(result).toContain("TEL:+1 555-000-0001");
+    expect(result).toContain("TEL;TYPE=CELL:+1 555-000-0001");
   });
 
   it("includes EMAIL when email is provided", () => {
@@ -298,12 +298,12 @@ const BASE_SMS: SmsInput = { phone: "+91 9876543210", message: "" };
 
 describe("generateSmsPayload", () => {
   it("produces an sms: URI with only the phone number", () => {
-    expect(generateSmsPayload(BASE_SMS)).toBe("sms:+91 9876543210");
+    expect(generateSmsPayload(BASE_SMS)).toBe("sms:+919876543210");
   });
 
   it("appends encoded body when message is provided", () => {
     const result = generateSmsPayload({ ...BASE_SMS, message: "Hi there" });
-    expect(result).toBe("sms:+91 9876543210?body=Hi%20there");
+    expect(result).toBe("sms:+919876543210?body=Hi%20there");
   });
 
   it("omits ?body param when message is empty", () => {

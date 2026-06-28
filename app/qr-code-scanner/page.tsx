@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import QRGenerator from "@/components/QRGenerator";
+import QRScanner from "@/components/QRScanner";
 
 export const metadata: Metadata = {
   title: "Free QR Code Scanner — Scan QR Codes Online Without an App",
@@ -79,7 +79,9 @@ const faqSchema = {
 export default function QRCodeScannerPage() {
   return (
     <main className="min-h-screen bg-[var(--bg-base)]">
-      <QRGenerator defaultMode="scan" />
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <QRScanner />
+      </div>
 
       <article className="mx-auto max-w-3xl px-4 pb-20 pt-4">
         <h1 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white">

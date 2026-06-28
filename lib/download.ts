@@ -14,8 +14,6 @@ const FILENAMES: Record<QRType, string> = {
   vcard: "vcard-qr-code",
   location: "location-qr-code",
   upi: "upi-qr-code",
-  "image-ocr": "image-text-qr-code",
-  "pdf-text": "pdf-text-qr-code",
   whatsapp: "whatsapp-qr-code",
   email: "email-qr-code",
   sms: "sms-qr-code",

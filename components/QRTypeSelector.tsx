@@ -8,17 +8,15 @@ interface Props {
 }
 
 const TABS: { id: QRType; label: string; icon: string }[] = [
-  { id: "url",       label: "Website URL", icon: "🔗" },
-  { id: "text",      label: "Plain Text",  icon: "📝" },
-  { id: "phone",     label: "Phone",       icon: "📞" },
-  { id: "whatsapp",  label: "WhatsApp",    icon: "💬" },
-  { id: "email",     label: "Email",       icon: "✉️"  },
-  { id: "sms",       label: "SMS",         icon: "💬" },
-  { id: "vcard",     label: "vCard",       icon: "👤" },
-  { id: "location",  label: "Location",    icon: "📍" },
-  { id: "upi",       label: "UPI Pay",     icon: "💸" },
-  { id: "image-ocr", label: "Image → QR", icon: "📷" },
-  { id: "pdf-text",  label: "PDF → QR",   icon: "📄" },
+  { id: "url",      label: "Website URL", icon: "🔗" },
+  { id: "text",     label: "Plain Text",  icon: "📝" },
+  { id: "phone",    label: "Phone",       icon: "📞" },
+  { id: "whatsapp", label: "WhatsApp",    icon: "💬" },
+  { id: "email",    label: "Email",       icon: "✉️"  },
+  { id: "sms",      label: "SMS",         icon: "💬" },
+  { id: "vcard",    label: "vCard",       icon: "👤" },
+  { id: "location", label: "Location",    icon: "📍" },
+  { id: "upi",      label: "UPI Pay",     icon: "💸" },
 ];
 
 export default function QRTypeSelector({ value, onChange }: Props) {

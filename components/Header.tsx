@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_LINKS = [
-  { href: "/qr-code-generator", label: "Generate" },
-  { href: "/qr-code-scanner",   label: "Scan" },
-  { href: "/image-to-qr-code",  label: "Extract Text" },
+  { href: "/",                  label: "Generate" },
+  { href: "/qr-code-scanner",  label: "Scan QR" },
+  { href: "/image-to-text",    label: "Extract Text" },
   { href: "/bulk-qr-generator", label: "Bulk QR" },
 ];
 
@@ -45,7 +45,7 @@ export default function Header() {
         <nav aria-label="Main navigation">
           <ul className="flex items-center gap-1">
             {NAV_LINKS.map(({ href, label }) => {
-              const active = pathname === href || pathname?.startsWith(href + "/");
+              const active = href === "/" ? pathname === "/" : pathname === href || pathname?.startsWith(href + "/");
               return (
                 <li key={href}>
                   <Link

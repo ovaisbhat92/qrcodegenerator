@@ -13,8 +13,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/location-qr-code-generator", priority: 0.8 },
     { path: "/upi-qr-code-generator", priority: 0.8 },
     { path: "/qr-code-scanner", priority: 0.8 },
-    { path: "/image-to-qr-code", priority: 0.8 },
-    { path: "/pdf-to-qr-code", priority: 0.8 },
     { path: "/whatsapp-qr-code-generator", priority: 0.8 },
     { path: "/email-qr-code-generator", priority: 0.8 },
     { path: "/sms-qr-code-generator", priority: 0.8 },
