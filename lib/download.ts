@@ -16,6 +16,9 @@ const FILENAMES: Record<QRType, string> = {
   upi: "upi-qr-code",
   "image-ocr": "image-text-qr-code",
   "pdf-text": "pdf-text-qr-code",
+  whatsapp: "whatsapp-qr-code",
+  email: "email-qr-code",
+  sms: "sms-qr-code",
 };
 
 export function getFilename(qrType: QRType): string {

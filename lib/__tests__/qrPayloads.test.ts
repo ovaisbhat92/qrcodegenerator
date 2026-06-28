@@ -6,9 +6,12 @@ import {
   generateVCardPayload,
   generateLocationPayload,
   generateUpiPayload,
+  generateWhatsAppPayload,
+  generateEmailPayload,
+  generateSmsPayload,
 } from "../qrPayloads";
 import { validateUpi } from "../validators";
-import type { VCardInput, LocationInput, UpiInput } from "@/types/qr";
+import type { VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
 
 // ── generateUrlPayload ────────────────────────────────────────────────────────
 
@@ -237,6 +240,78 @@ describe("generateUpiPayload", () => {
   it("encodes special characters in note", () => {
     const result = generateUpiPayload({ ...BASE_UPI, note: "Hello & World" });
     expect(result).toContain("tn=Hello%20%26%20World");
+  });
+});
+
+// ── generateWhatsAppPayload ───────────────────────────────────────────────────
+
+const BASE_WA: WhatsAppInput = { countryCode: "91", phone: "9876543210", message: "" };
+
+describe("generateWhatsAppPayload", () => {
+  it("produces a wa.me URL with country code + phone", () => {
+    expect(generateWhatsAppPayload(BASE_WA)).toBe("https://wa.me/919876543210");
+  });
+
+  it("appends encoded message when provided", () => {
+    const result = generateWhatsAppPayload({ ...BASE_WA, message: "Hello World" });
+    expect(result).toBe("https://wa.me/919876543210?text=Hello%20World");
+  });
+
+  it("omits ?text param when message is empty", () => {
+    expect(generateWhatsAppPayload(BASE_WA)).not.toContain("?text");
+  });
+
+  it("omits ?text param when message is whitespace only", () => {
+    expect(generateWhatsAppPayload({ ...BASE_WA, message: "   " })).not.toContain("?text");
+  });
+});
+
+// ── generateEmailPayload ──────────────────────────────────────────────────────
+
+const BASE_EMAIL: EmailInput = { email: "test@example.com", subject: "", body: "" };
+
+describe("generateEmailPayload", () => {
+  it("produces a mailto URI with only the email address", () => {
+    expect(generateEmailPayload(BASE_EMAIL)).toBe("mailto:test@example.com");
+  });
+
+  it("appends subject when provided", () => {
+    const result = generateEmailPayload({ ...BASE_EMAIL, subject: "Hello" });
+    expect(result).toBe("mailto:test@example.com?subject=Hello");
+  });
+
+  it("appends both subject and body when provided", () => {
+    const result = generateEmailPayload({ ...BASE_EMAIL, subject: "Hi", body: "Hello there" });
+    expect(result).toContain("subject=Hi");
+    expect(result).toContain("body=Hello%20there");
+  });
+
+  it("encodes special characters in subject", () => {
+    const result = generateEmailPayload({ ...BASE_EMAIL, subject: "Hello & World" });
+    expect(result).toContain("Hello%20%26%20World");
+  });
+});
+
+// ── generateSmsPayload ────────────────────────────────────────────────────────
+
+const BASE_SMS: SmsInput = { phone: "+91 9876543210", message: "" };
+
+describe("generateSmsPayload", () => {
+  it("produces an sms: URI with only the phone number", () => {
+    expect(generateSmsPayload(BASE_SMS)).toBe("sms:+91 9876543210");
+  });
+
+  it("appends encoded body when message is provided", () => {
+    const result = generateSmsPayload({ ...BASE_SMS, message: "Hi there" });
+    expect(result).toBe("sms:+91 9876543210?body=Hi%20there");
+  });
+
+  it("omits ?body param when message is empty", () => {
+    expect(generateSmsPayload(BASE_SMS)).not.toContain("?body");
+  });
+
+  it("omits ?body param when message is whitespace only", () => {
+    expect(generateSmsPayload({ ...BASE_SMS, message: "   " })).not.toContain("?body");
   });
 });
 

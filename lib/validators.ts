@@ -1,4 +1,4 @@
-import type { VCardInput, LocationInput, UpiInput } from "@/types/qr";
+import type { VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
 
 export interface ValidationResult {
   valid: boolean;
@@ -116,6 +116,39 @@ export function validateLocation(location: LocationInput): ValidationResult {
   }
   if (isNaN(lng) || lng < -180 || lng > 180) {
     return { valid: false, error: "Longitude must be between -180 and 180" };
+  }
+  return { valid: true };
+}
+
+export function validateWhatsApp(input: WhatsAppInput): ValidationResult {
+  if (!input.countryCode) {
+    return { valid: false, error: "Please select a country code" };
+  }
+  const phone = input.phone.trim();
+  if (!phone) {
+    return { valid: false, error: "Phone number is required" };
+  }
+  if (!/^\d{7,15}$/.test(phone)) {
+    return { valid: false, error: "Phone number must be 7–15 digits (no spaces or dashes)" };
+  }
+  return { valid: true };
+}
+
+export function validateEmail(input: EmailInput): ValidationResult {
+  const email = input.email.trim();
+  if (!email) {
+    return { valid: false, error: "Email address is required" };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { valid: false, error: "Please enter a valid email address (e.g. name@example.com)" };
+  }
+  return { valid: true };
+}
+
+export function validateSms(input: SmsInput): ValidationResult {
+  const phone = input.phone.trim();
+  if (!phone) {
+    return { valid: false, error: "Phone number is required" };
   }
   return { valid: true };
 }

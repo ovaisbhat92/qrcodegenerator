@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { trackQRGenerated } from "@/lib/analytics";
 import { useTheme } from "next-themes";
-import type { QRType, CustomizationOptions, VCardInput, LocationInput, UpiInput } from "@/types/qr";
+import type { QRType, CustomizationOptions, VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
 import { DEFAULT_CUSTOMIZATION } from "@/types/qr";
 import {
   generateUrlPayload,
@@ -14,6 +14,9 @@ import {
   generateUpiPayload,
   generateImageTextPayload,
   generatePdfTextPayload,
+  generateWhatsAppPayload,
+  generateEmailPayload,
+  generateSmsPayload,
 } from "@/lib/qrPayloads";
 import {
   validateUrl,
@@ -24,6 +27,9 @@ import {
   validateUpi,
   validateImageText,
   validatePdfText,
+  validateWhatsApp,
+  validateEmail,
+  validateSms,
 } from "@/lib/validators";
 import ImageOcrInput from "@/components/ImageOcrInput";
 import PdfTextInput from "@/components/PdfTextInput";
@@ -46,6 +52,18 @@ const DEFAULT_LOCATION: LocationInput = {
 
 const DEFAULT_UPI: UpiInput = {
   upiId: "", payeeName: "", amount: "", note: "",
+};
+
+const DEFAULT_WHATSAPP: WhatsAppInput = {
+  countryCode: "91", phone: "", message: "",
+};
+
+const DEFAULT_EMAIL: EmailInput = {
+  email: "", subject: "", body: "",
+};
+
+const DEFAULT_SMS: SmsInput = {
+  phone: "", message: "",
 };
 
 // ── localStorage persistence for customization ───────────────────────────────
@@ -103,6 +121,9 @@ export default function QRGenerator({
   const [upiInput, setUpiInput] = useState<UpiInput>(DEFAULT_UPI);
   const [imageOcrText, setImageOcrText] = useState("");
   const [pdfText, setPdfText] = useState("");
+  const [whatsappInput, setWhatsappInput] = useState<WhatsAppInput>(DEFAULT_WHATSAPP);
+  const [emailInput, setEmailInput] = useState<EmailInput>(DEFAULT_EMAIL);
+  const [smsInput, setSmsInput] = useState<SmsInput>(DEFAULT_SMS);
 
   const { customization, setCustomization, resetToDefaults } = usePersistedCustomization();
   const previewRef = useRef<QRPreviewHandle>(null);
@@ -141,8 +162,20 @@ export default function QRGenerator({
         const v = validatePdfText(pdfText);
         return { validation: v, payload: v.valid ? generatePdfTextPayload(pdfText) : "" };
       }
+      case "whatsapp": {
+        const v = validateWhatsApp(whatsappInput);
+        return { validation: v, payload: v.valid ? generateWhatsAppPayload(whatsappInput) : "" };
+      }
+      case "email": {
+        const v = validateEmail(emailInput);
+        return { validation: v, payload: v.valid ? generateEmailPayload(emailInput) : "" };
+      }
+      case "sms": {
+        const v = validateSms(smsInput);
+        return { validation: v, payload: v.valid ? generateSmsPayload(smsInput) : "" };
+      }
     }
-  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput, upiInput, imageOcrText, pdfText]);
+  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput, upiInput, imageOcrText, pdfText, whatsappInput, emailInput, smsInput]);
 
   const upiCaption = useMemo((): UpiCaption | null => {
     if (qrType !== "upi" || !upiInput.payeeName.trim()) return null;
@@ -169,9 +202,25 @@ export default function QRGenerator({
         labelText: "Scan this to read document text",
         iconType: "pdf-text",
       },
+      whatsapp: {
+        mainText: `+${whatsappInput.countryCode} ${whatsappInput.phone}`,
+        labelText: "Scan this to chat on WhatsApp",
+        iconType: "whatsapp",
+        labelColor: "#25D366",
+      },
+      email: {
+        mainText: emailInput.email,
+        labelText: "Scan this to send an email",
+        iconType: "email",
+      },
+      sms: {
+        mainText: smsInput.phone,
+        labelText: "Scan this to send an SMS",
+        iconType: "sms",
+      },
     };
     return map[qrType] ?? null;
-  }, [qrType, payload, imageOcrText, pdfText]);
+  }, [qrType, payload, imageOcrText, pdfText, whatsappInput, emailInput, smsInput]);
 
   const isDisabled = !validation?.valid || !payload;
   const [customizationOpen, setCustomizationOpen] = useState(false);
@@ -330,6 +379,15 @@ export default function QRGenerator({
               )}
               {qrType === "pdf-text" && (
                 <PdfTextInput value={pdfText} onChange={setPdfText} />
+              )}
+              {qrType === "whatsapp" && (
+                <WhatsAppForm value={whatsappInput} onChange={setWhatsappInput} validation={validation} />
+              )}
+              {qrType === "email" && (
+                <EmailForm value={emailInput} onChange={setEmailInput} validation={validation} />
+              )}
+              {qrType === "sms" && (
+                <SmsForm value={smsInput} onChange={setSmsInput} validation={validation} />
               )}
             </div>
           </Card>
@@ -909,6 +967,212 @@ function UpiForm({
         <ShieldIcon />
         Your UPI ID is never sent to our servers. The QR code is generated entirely in your browser.
       </p>
+    </div>
+  );
+}
+
+// ── WhatsApp form ─────────────────────────────────────────────────────────────
+
+const COUNTRY_CODES = [
+  { code: "91",  flag: "🇮🇳", name: "India" },
+  { code: "1",   flag: "🇺🇸", name: "USA/Canada" },
+  { code: "44",  flag: "🇬🇧", name: "UK" },
+  { code: "61",  flag: "🇦🇺", name: "Australia" },
+  { code: "971", flag: "🇦🇪", name: "UAE" },
+  { code: "966", flag: "🇸🇦", name: "Saudi Arabia" },
+  { code: "65",  flag: "🇸🇬", name: "Singapore" },
+  { code: "60",  flag: "🇲🇾", name: "Malaysia" },
+  { code: "92",  flag: "🇵🇰", name: "Pakistan" },
+  { code: "880", flag: "🇧🇩", name: "Bangladesh" },
+  { code: "94",  flag: "🇱🇰", name: "Sri Lanka" },
+  { code: "977", flag: "🇳🇵", name: "Nepal" },
+  { code: "49",  flag: "🇩🇪", name: "Germany" },
+  { code: "33",  flag: "🇫🇷", name: "France" },
+  { code: "81",  flag: "🇯🇵", name: "Japan" },
+  { code: "86",  flag: "🇨🇳", name: "China" },
+  { code: "55",  flag: "🇧🇷", name: "Brazil" },
+  { code: "52",  flag: "🇲🇽", name: "Mexico" },
+  { code: "27",  flag: "🇿🇦", name: "South Africa" },
+  { code: "234", flag: "🇳🇬", name: "Nigeria" },
+];
+
+function WhatsAppForm({
+  value,
+  onChange,
+  validation,
+}: {
+  value: WhatsAppInput;
+  onChange: (v: WhatsAppInput) => void;
+  validation: ValidationResult;
+}) {
+  const set = <K extends keyof WhatsAppInput>(key: K, val: WhatsAppInput[K]) =>
+    onChange({ ...value, [key]: val });
+
+  const phoneHasError = value.phone !== "" && !validation.valid && !!validation.error;
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <label className="block text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+          Country code &amp; phone number *
+        </label>
+        <div className="flex gap-2">
+          <select
+            value={value.countryCode}
+            onChange={(e) => set("countryCode", e.target.value)}
+            className="themed-input w-auto shrink-0"
+            style={{ minWidth: "140px" }}
+            aria-label="Country code"
+          >
+            {COUNTRY_CODES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag} +{c.code} {c.name}
+              </option>
+            ))}
+          </select>
+          <input
+            id="whatsapp-phone"
+            type="tel"
+            inputMode="numeric"
+            placeholder="9876543210"
+            value={value.phone}
+            onChange={(e) => set("phone", e.target.value.replace(/\D/g, ""))}
+            className="themed-input flex-1"
+            aria-required="true"
+            aria-invalid={phoneHasError ? true : undefined}
+            aria-describedby={phoneHasError ? "whatsapp-phone-error" : undefined}
+          />
+        </div>
+        {phoneHasError && (
+          <p id="whatsapp-phone-error" role="alert" className="text-xs text-red-500">
+            {validation.error}
+          </p>
+        )}
+      </div>
+      <Field label="Pre-filled message (optional)" inputId="whatsapp-message">
+        <textarea
+          id="whatsapp-message"
+          rows={3}
+          placeholder="Hi! I saw your QR code and wanted to reach out…"
+          value={value.message}
+          onChange={(e) => set("message", e.target.value)}
+          className="themed-input resize-none"
+        />
+      </Field>
+    </div>
+  );
+}
+
+// ── Email form ────────────────────────────────────────────────────────────────
+
+function EmailForm({
+  value,
+  onChange,
+  validation,
+}: {
+  value: EmailInput;
+  onChange: (v: EmailInput) => void;
+  validation: ValidationResult;
+}) {
+  const set = <K extends keyof EmailInput>(key: K, val: EmailInput[K]) =>
+    onChange({ ...value, [key]: val });
+
+  const emailHasError = value.email !== "" && !validation.valid && !!validation.error;
+
+  return (
+    <div className="space-y-3">
+      <Field label="Email address *" inputId="email-address">
+        <input
+          id="email-address"
+          type="email"
+          inputMode="email"
+          placeholder="recipient@example.com"
+          value={value.email}
+          onChange={(e) => set("email", e.target.value)}
+          className="themed-input"
+          autoComplete="email"
+          aria-required="true"
+          aria-invalid={emailHasError ? true : undefined}
+          aria-describedby={emailHasError ? "email-address-error" : undefined}
+        />
+        {emailHasError && (
+          <p id="email-address-error" role="alert" className="text-xs text-red-500">
+            {validation.error}
+          </p>
+        )}
+      </Field>
+      <Field label="Subject (optional)" inputId="email-subject">
+        <input
+          id="email-subject"
+          type="text"
+          placeholder="Hello from QR code!"
+          value={value.subject}
+          onChange={(e) => set("subject", e.target.value)}
+          className="themed-input"
+        />
+      </Field>
+      <Field label="Body (optional)" inputId="email-body">
+        <textarea
+          id="email-body"
+          rows={3}
+          placeholder="Your message here…"
+          value={value.body}
+          onChange={(e) => set("body", e.target.value)}
+          className="themed-input resize-none"
+        />
+      </Field>
+    </div>
+  );
+}
+
+// ── SMS form ──────────────────────────────────────────────────────────────────
+
+function SmsForm({
+  value,
+  onChange,
+  validation,
+}: {
+  value: SmsInput;
+  onChange: (v: SmsInput) => void;
+  validation: ValidationResult;
+}) {
+  const set = <K extends keyof SmsInput>(key: K, val: SmsInput[K]) =>
+    onChange({ ...value, [key]: val });
+
+  const phoneHasError = value.phone !== "" && !validation.valid && !!validation.error;
+
+  return (
+    <div className="space-y-3">
+      <Field label="Phone number *" inputId="sms-phone">
+        <input
+          id="sms-phone"
+          type="tel"
+          inputMode="tel"
+          placeholder="+91 9876543210"
+          value={value.phone}
+          onChange={(e) => set("phone", e.target.value)}
+          className="themed-input"
+          autoComplete="tel"
+          aria-required="true"
+          aria-invalid={phoneHasError ? true : undefined}
+          aria-describedby={phoneHasError ? "sms-phone-error" : undefined}
+        />
+        {phoneHasError && (
+          <p id="sms-phone-error" role="alert" className="text-xs text-red-500">
+            {validation.error}
+          </p>
+        )}
+      </Field>
+      <Field label="Pre-filled message (optional)" inputId="sms-message">
+        <textarea
+          id="sms-message"
+          rows={3}
+          placeholder="Your SMS message here…"
+          value={value.message}
+          onChange={(e) => set("message", e.target.value)}
+          className="themed-input resize-none"
+        />
+      </Field>
     </div>
   );
 }

@@ -5,8 +5,11 @@ import {
   validatePhone,
   validateVCard,
   validateLocation,
+  validateWhatsApp,
+  validateEmail,
+  validateSms,
 } from "../validators";
-import type { VCardInput, LocationInput } from "@/types/qr";
+import type { VCardInput, LocationInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
 
 // ── validateUrl ───────────────────────────────────────────────────────────────
 
@@ -227,6 +230,107 @@ describe("validateLocation (coordinates mode)", () => {
     expect(
       validateLocation({ ...EMPTY_LOCATION, lat: "abc", lng: "0" }).valid
     ).toBe(false);
+  });
+});
+
+// ── validateWhatsApp ──────────────────────────────────────────────────────────
+
+const BASE_WA_INPUT: WhatsAppInput = { countryCode: "91", phone: "9876543210", message: "" };
+
+describe("validateWhatsApp", () => {
+  it("passes with a valid country code and phone", () => {
+    expect(validateWhatsApp(BASE_WA_INPUT).valid).toBe(true);
+  });
+
+  it("passes when optional message is provided", () => {
+    expect(validateWhatsApp({ ...BASE_WA_INPUT, message: "Hello!" }).valid).toBe(true);
+  });
+
+  it("fails when country code is empty", () => {
+    const r = validateWhatsApp({ ...BASE_WA_INPUT, countryCode: "" });
+    expect(r.valid).toBe(false);
+    expect(r.error).toBeTruthy();
+  });
+
+  it("fails when phone is empty", () => {
+    const r = validateWhatsApp({ ...BASE_WA_INPUT, phone: "" });
+    expect(r.valid).toBe(false);
+    expect(r.error).toBeTruthy();
+  });
+
+  it("fails when phone has fewer than 7 digits", () => {
+    const r = validateWhatsApp({ ...BASE_WA_INPUT, phone: "12345" });
+    expect(r.valid).toBe(false);
+  });
+
+  it("fails when phone contains non-digit characters", () => {
+    const r = validateWhatsApp({ ...BASE_WA_INPUT, phone: "+91-987" });
+    expect(r.valid).toBe(false);
+  });
+
+  it("fails when phone exceeds 15 digits", () => {
+    const r = validateWhatsApp({ ...BASE_WA_INPUT, phone: "1234567890123456" });
+    expect(r.valid).toBe(false);
+  });
+});
+
+// ── validateEmail ─────────────────────────────────────────────────────────────
+
+const BASE_EMAIL_INPUT: EmailInput = { email: "test@example.com", subject: "", body: "" };
+
+describe("validateEmail", () => {
+  it("passes with a valid email address", () => {
+    expect(validateEmail(BASE_EMAIL_INPUT).valid).toBe(true);
+  });
+
+  it("passes with optional subject and body", () => {
+    expect(validateEmail({ ...BASE_EMAIL_INPUT, subject: "Hi", body: "Hello" }).valid).toBe(true);
+  });
+
+  it("fails when email is empty", () => {
+    const r = validateEmail({ ...BASE_EMAIL_INPUT, email: "" });
+    expect(r.valid).toBe(false);
+    expect(r.error).toBeTruthy();
+  });
+
+  it("fails when email has no @ symbol", () => {
+    const r = validateEmail({ ...BASE_EMAIL_INPUT, email: "notanemail" });
+    expect(r.valid).toBe(false);
+  });
+
+  it("fails when email has no domain part", () => {
+    const r = validateEmail({ ...BASE_EMAIL_INPUT, email: "user@" });
+    expect(r.valid).toBe(false);
+  });
+
+  it("fails when email has no TLD", () => {
+    const r = validateEmail({ ...BASE_EMAIL_INPUT, email: "user@example" });
+    expect(r.valid).toBe(false);
+  });
+});
+
+// ── validateSms ───────────────────────────────────────────────────────────────
+
+const BASE_SMS_INPUT: SmsInput = { phone: "+91 9876543210", message: "" };
+
+describe("validateSms", () => {
+  it("passes with a valid phone number", () => {
+    expect(validateSms(BASE_SMS_INPUT).valid).toBe(true);
+  });
+
+  it("passes with an optional message", () => {
+    expect(validateSms({ ...BASE_SMS_INPUT, message: "Hi there" }).valid).toBe(true);
+  });
+
+  it("fails when phone is empty", () => {
+    const r = validateSms({ ...BASE_SMS_INPUT, phone: "" });
+    expect(r.valid).toBe(false);
+    expect(r.error).toBeTruthy();
+  });
+
+  it("fails when phone is whitespace only", () => {
+    const r = validateSms({ ...BASE_SMS_INPUT, phone: "   " });
+    expect(r.valid).toBe(false);
   });
 });
 
