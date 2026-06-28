@@ -17,14 +17,14 @@ const nextConfig = {
       {
         source: "/.well-known/assetlinks.json",
         headers: [
-          {
-            key: "Content-Type",
-            value: "application/json",
-          },
-          {
-            key: "Cache-Control",
-            value: "public, max-age=3600",
-          },
+          { key: "Content-Type", value: "application/json" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
+        ],
+      },
+      {
+        source: "/pdf.worker.min.mjs",
+        headers: [
+          { key: "Content-Type", value: "text/javascript" },
         ],
       },
     ];

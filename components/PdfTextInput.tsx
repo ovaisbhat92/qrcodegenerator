@@ -13,30 +13,29 @@ interface Props {
   onChange: (text: string) => void;
 }
 
-async function extractPagesFromBuffer(
-  data: ArrayBuffer,
-  range: PageRange,
-  totalPages: number
-): Promise<string> {
-  const { getDocument } = await import("pdfjs-dist");
-  const pdf = await getDocument({ data: new Uint8Array(data) }).promise;
+async function extractFromPdf(data: ArrayBuffer, range: PageRange): Promise<string> {
+  const { getDocument, GlobalWorkerOptions } = await import("pdfjs-dist");
+  GlobalWorkerOptions.workerSrc = new URL("/pdf.worker.min.mjs", window.location.origin).href;
+
+  const pdf = await getDocument({ data: new Uint8Array(data.slice(0)) }).promise;
+  const totalPages = pdf.numPages;
 
   const pagesToRead: number[] = [];
   if (range === "first") {
     pagesToRead.push(1);
   } else if (range === "first-two") {
-    pagesToRead.push(1, 2);
+    pagesToRead.push(1);
+    if (totalPages >= 2) pagesToRead.push(2);
   } else {
     for (let i = 1; i <= totalPages; i++) pagesToRead.push(i);
   }
 
   const parts: string[] = [];
   for (const n of pagesToRead) {
-    if (n > totalPages) break;
     const page = await pdf.getPage(n);
     const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item) => ("str" in item ? (item as { str: string }).str : ""))
+    const pageText = (content.items as { str?: string }[])
+      .map((item) => item.str ?? "")
       .join(" ")
       .replace(/\s+/g, " ")
       .trim();
@@ -75,21 +74,35 @@ export default function PdfTextInput({ value, onChange }: Props) {
       setPageRange("all");
 
       try {
-        // Dynamically import pdfjs-dist — only loaded when user uploads a PDF
         const { getDocument, GlobalWorkerOptions } = await import("pdfjs-dist");
-        GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        GlobalWorkerOptions.workerSrc = new URL("/pdf.worker.min.mjs", window.location.origin).href;
 
         const arrayBuffer = await file.arrayBuffer();
-        bufferRef.current = arrayBuffer;
+        // Store a copy so later page-range changes can re-read the buffer safely
+        bufferRef.current = arrayBuffer.slice(0);
 
         const pdf = await getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
         const numPages = pdf.numPages;
         setPageCount(numPages);
 
-        const text = await extractPagesFromBuffer(arrayBuffer, "all", numPages);
+        // Extract all pages from the already-loaded document (no second getDocument call)
+        const parts: string[] = [];
+        for (let i = 1; i <= numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const pageText = (content.items as { str?: string }[])
+            .map((item) => item.str ?? "")
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim();
+          if (pageText) parts.push(pageText);
+        }
+
+        const text = parts.join(" ");
         setFullText(text);
         onChange(text.slice(0, CHAR_HARD_LIMIT));
-      } catch {
+      } catch (err) {
+        console.error("PDF extraction error:", err);
         setError(
           "Failed to extract text from this PDF. The file may be scanned (image-only) or password-protected."
         );
@@ -107,10 +120,11 @@ export default function PdfTextInput({ value, onChange }: Props) {
       setPageRange(range);
       setLoading(true);
       try {
-        const text = await extractPagesFromBuffer(bufferRef.current, range, pageCount);
+        const text = await extractFromPdf(bufferRef.current, range);
         setFullText(text);
         onChange(text.slice(0, CHAR_HARD_LIMIT));
-      } catch {
+      } catch (err) {
+        console.error("PDF re-extraction error:", err);
         setError("Failed to re-extract text.");
       } finally {
         setLoading(false);
