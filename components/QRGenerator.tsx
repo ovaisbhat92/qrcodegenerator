@@ -27,7 +27,7 @@ import CustomizationPanel from "@/components/CustomizationPanel";
 import QRPreview, { type QRPreviewHandle, type UpiCaption, type QRCaption } from "@/components/QRPreview";
 import DownloadButtons from "@/components/DownloadButtons";
 
-const STORAGE_KEY = "qr-customization-v2";
+const STORAGE_KEY = "qr-customization-v3";
 
 const DEFAULT_VCARD: VCardInput = {
   fullName: "", phone: "", email: "",

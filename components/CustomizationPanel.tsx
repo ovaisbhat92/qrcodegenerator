@@ -21,8 +21,12 @@ interface Props {
 
 type PresetKey = Pick<
   CustomizationOptions,
-  "fgColor" | "bgColor" | "transparentBg" | "dotStyle" | "cornerStyle" | "cornerColor" | "gradient"
+  "fgColor" | "bgColor" | "transparentBg" | "dotStyle" | "cornerStyle" | "cornerColor" | "gradient" | "cornerGradient"
 >;
+
+function linearGrad(startColor: string, endColor: string): import("@/types/qr").GradientOptions {
+  return { type: "linear", rotation: 135, startColor, endColor };
+}
 
 const PRESETS: { name: string; color: string; preset: PresetKey }[] = [
   {
@@ -30,7 +34,8 @@ const PRESETS: { name: string; color: string; preset: PresetKey }[] = [
     color: "#000000",
     preset: {
       fgColor: "#000000", bgColor: "#ffffff", transparentBg: false,
-      dotStyle: "rounded", cornerStyle: "square", cornerColor: "#000000", gradient: null,
+      dotStyle: "dots", cornerStyle: "square", cornerColor: "#000000",
+      gradient: null, cornerGradient: null,
     },
   },
   {
@@ -38,7 +43,8 @@ const PRESETS: { name: string; color: string; preset: PresetKey }[] = [
     color: "#1E40AF",
     preset: {
       fgColor: "#1E40AF", bgColor: "#ffffff", transparentBg: false,
-      dotStyle: "rounded", cornerStyle: "rounded", cornerColor: "#1E40AF", gradient: null,
+      dotStyle: "dots", cornerStyle: "rounded", cornerColor: "#1E40AF",
+      gradient: null, cornerGradient: linearGrad("#1E40AF", "#3B82F6"),
     },
   },
   {
@@ -46,7 +52,8 @@ const PRESETS: { name: string; color: string; preset: PresetKey }[] = [
     color: "#15803D",
     preset: {
       fgColor: "#15803D", bgColor: "#ffffff", transparentBg: false,
-      dotStyle: "rounded", cornerStyle: "rounded", cornerColor: "#15803D", gradient: null,
+      dotStyle: "dots", cornerStyle: "rounded", cornerColor: "#15803D",
+      gradient: null, cornerGradient: linearGrad("#15803D", "#22c55e"),
     },
   },
   {
@@ -54,7 +61,8 @@ const PRESETS: { name: string; color: string; preset: PresetKey }[] = [
     color: "#7C3AED",
     preset: {
       fgColor: "#7C3AED", bgColor: "#F5F3FF", transparentBg: false,
-      dotStyle: "extra-rounded", cornerStyle: "rounded", cornerColor: "#7C3AED", gradient: null,
+      dotStyle: "dots", cornerStyle: "rounded", cornerColor: "#7C3AED",
+      gradient: null, cornerGradient: linearGrad("#7C3AED", "#a855f7"),
     },
   },
   {
@@ -62,7 +70,8 @@ const PRESETS: { name: string; color: string; preset: PresetKey }[] = [
     color: "#4B5563",
     preset: {
       fgColor: "#4B5563", bgColor: "#F9FAFB", transparentBg: false,
-      dotStyle: "rounded", cornerStyle: "rounded", cornerColor: "#4B5563", gradient: null,
+      dotStyle: "dots", cornerStyle: "rounded", cornerColor: "#4B5563",
+      gradient: null, cornerGradient: null,
     },
   },
 ];

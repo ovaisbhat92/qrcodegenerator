@@ -74,24 +74,35 @@ function mapCornerDot(style: CornerStyle): "square" | "dot" {
   return "square";
 }
 
+function toQRGradient(g: import("@/types/qr").GradientOptions) {
+  return {
+    type: g.type,
+    rotation: (g.rotation * Math.PI) / 180,
+    colorStops: [
+      { offset: 0, color: g.startColor },
+      { offset: 1, color: g.endColor },
+    ],
+  };
+}
+
 function buildOptions(data: string, opts: CustomizationOptions): Record<string, unknown> {
   const {
     size, margin, errorCorrection, fgColor, bgColor, transparentBg,
-    dotStyle, cornerStyle, cornerColor, gradient, logo,
+    dotStyle, cornerStyle, cornerColor, gradient, cornerGradient, logo,
   } = opts;
 
   const dotsOptions: Record<string, unknown> = { type: dotStyle };
   if (gradient) {
-    dotsOptions.gradient = {
-      type: gradient.type,
-      rotation: (gradient.rotation * Math.PI) / 180,
-      colorStops: [
-        { offset: 0, color: gradient.startColor },
-        { offset: 1, color: gradient.endColor },
-      ],
-    };
+    dotsOptions.gradient = toQRGradient(gradient);
   } else {
     dotsOptions.color = fgColor;
+  }
+
+  const cornersSquareOpts: Record<string, unknown> = { type: mapCornerSquare(cornerStyle) };
+  if (cornerGradient) {
+    cornersSquareOpts.gradient = toQRGradient(cornerGradient);
+  } else {
+    cornersSquareOpts.color = cornerColor;
   }
 
   const base: Record<string, unknown> = {
@@ -104,10 +115,7 @@ function buildOptions(data: string, opts: CustomizationOptions): Record<string, 
     backgroundOptions: {
       color: transparentBg ? "rgba(0,0,0,0)" : bgColor,
     },
-    cornersSquareOptions: {
-      type: mapCornerSquare(cornerStyle),
-      color: cornerColor,
-    },
+    cornersSquareOptions: cornersSquareOpts,
     cornersDotOptions: {
       type: mapCornerDot(cornerStyle),
       color: fgColor,
@@ -503,35 +511,38 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
 
     return (
       <div style={{ width: PREVIEW_SIZE }}>
-        {/* QR code */}
-        <div
-          role="img"
-          aria-label={ariaLabel}
-          className="overflow-hidden"
-          style={{
-            width: PREVIEW_SIZE,
-            height: PREVIEW_SIZE,
-            borderRadius: anyCaption ? "12px 12px 0 0" : "12px",
-            boxShadow: "0 0 30px rgba(6,182,212,0.2), 0 0 0 1px rgba(255,255,255,0.06)",
-            ...bgStyle,
-          }}
-        >
-          {!data ? (
-            <Placeholder />
-          ) : (
-            <div
-              className="flex items-center justify-center"
-              style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
-            >
+        {/* QR code + decorative corner lining (preview only) */}
+        <div style={{ position: "relative", display: "inline-block" }}>
+          <div
+            role="img"
+            aria-label={ariaLabel}
+            className="overflow-hidden"
+            style={{
+              width: PREVIEW_SIZE,
+              height: PREVIEW_SIZE,
+              borderRadius: anyCaption ? "12px 12px 0 0" : "12px",
+              boxShadow: "0 0 30px rgba(6,182,212,0.2), 0 0 0 1px rgba(255,255,255,0.06)",
+              ...bgStyle,
+            }}
+          >
+            {!data ? (
+              <Placeholder />
+            ) : (
               <div
-                ref={containerRef}
-                style={{
-                  transform: scale < 1 ? `scale(${scale})` : undefined,
-                  transformOrigin: "center center",
-                }}
-              />
-            </div>
-          )}
+                className="flex items-center justify-center"
+                style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
+              >
+                <div
+                  ref={containerRef}
+                  style={{
+                    transform: scale < 1 ? `scale(${scale})` : undefined,
+                    transformOrigin: "center center",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <CornerLining />
         </div>
 
         {/* UPI caption card — unchanged */}
@@ -710,6 +721,59 @@ function CaptionIcon({ type }: { type: QRCaption["iconType"] }) {
     default:
       return null;
   }
+}
+
+// ── Corner lining (decorative preview-only frame) ─────────────────────────────
+
+const CL_PAD = 10;  // SVG extends this many px beyond the QR card on each side
+const CL_ARM = 22;  // length of each L-arm
+const CL_GAP = 3;   // gap between card edge and accent line
+const CL_T   = 3;   // stroke thickness
+
+function CornerLining() {
+  const total = PREVIEW_SIZE + CL_PAD * 2;
+  // corner accent point (where two arms meet) in SVG space
+  const c  = CL_PAD - CL_GAP;          // near-side corners (TL / BL / etc.)
+  const cR = total - c;                 // far-side corners
+  const a  = CL_ARM;
+
+  return (
+    <svg
+      aria-hidden="true"
+      width={total}
+      height={total}
+      style={{
+        position: "absolute",
+        top: -CL_PAD,
+        left: -CL_PAD,
+        pointerEvents: "none",
+        overflow: "visible",
+      }}
+    >
+      <defs>
+        <linearGradient
+          id="qr-corner-grad"
+          gradientUnits="userSpaceOnUse"
+          x1="0" y1="0" x2={total} y2={total}
+        >
+          <stop offset="0%" stopColor="#06b6d4" />
+          <stop offset="100%" stopColor="#7c3aed" />
+        </linearGradient>
+      </defs>
+      {/* Top-left */}
+      <polyline points={`${c + a},${c} ${c},${c} ${c},${c + a}`}
+        fill="none" stroke="url(#qr-corner-grad)" strokeWidth={CL_T} strokeLinecap="round" strokeLinejoin="round" />
+      {/* Top-right */}
+      <polyline points={`${cR - a},${c} ${cR},${c} ${cR},${c + a}`}
+        fill="none" stroke="url(#qr-corner-grad)" strokeWidth={CL_T} strokeLinecap="round" strokeLinejoin="round" />
+      {/* Bottom-left */}
+      <polyline points={`${c + a},${cR} ${c},${cR} ${c},${cR - a}`}
+        fill="none" stroke="url(#qr-corner-grad)" strokeWidth={CL_T} strokeLinecap="round" strokeLinejoin="round" />
+      {/* Bottom-right */}
+      <polyline points={`${cR - a},${cR} ${cR},${cR} ${cR},${cR - a}`}
+        fill="none" stroke="url(#qr-corner-grad)" strokeWidth={CL_T} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 // ── Placeholder ───────────────────────────────────────────────────────────────

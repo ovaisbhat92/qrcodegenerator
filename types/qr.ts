@@ -56,8 +56,16 @@ export interface CustomizationOptions {
   cornerStyle: CornerStyle;
   cornerColor: string;
   gradient: GradientOptions | null;
+  cornerGradient: GradientOptions | null;
   logo: LogoOptions | null;
 }
+
+const CYAN_PURPLE: GradientOptions = {
+  type: "linear",
+  rotation: 135,
+  startColor: "#06b6d4",
+  endColor: "#7c3aed",
+};
 
 export const DEFAULT_CUSTOMIZATION: CustomizationOptions = {
   size: 300,
@@ -66,9 +74,10 @@ export const DEFAULT_CUSTOMIZATION: CustomizationOptions = {
   fgColor: "#0a1628",
   bgColor: "#ffffff",
   transparentBg: false,
-  dotStyle: "rounded",
+  dotStyle: "dots",
   cornerStyle: "rounded",
   cornerColor: "#06b6d4",
-  gradient: null,
+  gradient: CYAN_PURPLE,
+  cornerGradient: CYAN_PURPLE,
   logo: null,
 };
