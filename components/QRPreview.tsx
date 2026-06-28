@@ -35,7 +35,8 @@ export interface QRCaption {
   mainText?: string;
   secondaryText?: string;
   labelText: string;
-  iconType: "phone" | "link" | "location" | "vcard" | "text";
+  iconType: "phone" | "link" | "location" | "vcard" | "text" | "image-ocr" | "pdf-text" | "whatsapp" | "email" | "sms";
+  labelColor?: string; // defaults to cyan #06b6d4
 }
 
 interface Props {
@@ -53,6 +54,11 @@ const QR_TYPE_LABELS: Record<QRType, string> = {
   vcard: "contact card",
   location: "location",
   upi: "UPI payment",
+  "image-ocr": "extracted image text",
+  "pdf-text": "document text",
+  whatsapp: "WhatsApp message",
+  email: "email",
+  sms: "SMS message",
 };
 
 let qrModulePromise: Promise<{ default: unknown }> | null = null;
@@ -133,6 +139,11 @@ function buildOptions(data: string, opts: CustomizationOptions): Record<string, 
   }
 
   return base;
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r ? [parseInt(r[1], 16), parseInt(r[2], 16), parseInt(r[3], 16)] : [6, 182, 212];
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {
@@ -235,7 +246,7 @@ async function buildGenericCaptionCanvas(
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, qrSize, qrSize, captionH);
 
-  ctx.fillStyle = "#06b6d4";
+  ctx.fillStyle = cap.labelColor ?? "#06b6d4";
   ctx.fillRect(0, qrSize, qrSize, borderH);
 
   const FONT = "-apple-system, BlinkMacSystemFont, Arial, sans-serif";
@@ -260,7 +271,7 @@ async function buildGenericCaptionCanvas(
   }
 
   const labelFontSize = Math.max(10, Math.round(qrSize * 0.025));
-  ctx.fillStyle = "#06b6d4";
+  ctx.fillStyle = cap.labelColor ?? "#06b6d4";
   ctx.font = `600 ${labelFontSize}px ${FONT}`;
   ctx.textBaseline = "middle";
   const labelY = hasMain
@@ -441,10 +452,11 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
 
             pdf.addImage(qrDataUrl, "PNG", qrX, qrY, imgSize, imgSize);
 
+            const [clr, clg, clb] = hexToRgb(caption.labelColor ?? "#06b6d4");
             pdf.setFillColor(255, 255, 255);
             pdf.rect(qrX, cY, imgSize, captionH, "F");
 
-            pdf.setFillColor(6, 182, 212);
+            pdf.setFillColor(clr, clg, clb);
             pdf.rect(qrX, cY, imgSize, 0.9, "F");
 
             if (hasMain) {
@@ -463,7 +475,7 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
 
             pdf.setFont("helvetica", "bold");
             pdf.setFontSize(7);
-            pdf.setTextColor(6, 182, 212);
+            pdf.setTextColor(clr, clg, clb);
             pdf.text(
               caption.labelText.toUpperCase(),
               pageW / 2,
@@ -614,14 +626,14 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
           </div>
         )}
 
-        {/* Generic caption card (phone, url, text, location, vcard) */}
+        {/* Generic caption card (phone, url, text, location, vcard, whatsapp, email, sms) */}
         {showGenericCaption && caption && (
           <div
             aria-label={`${qrType} QR code caption`}
             style={{
               width: PREVIEW_SIZE,
               background: "#ffffff",
-              borderTop: "3px solid #06b6d4",
+              borderTop: `3px solid ${caption.labelColor ?? "#06b6d4"}`,
               borderRadius: "0 0 12px 12px",
               boxShadow: "0 0 30px rgba(6,182,212,0.2), 0 0 0 1px rgba(255,255,255,0.06)",
               padding: "10px 14px 10px",
@@ -664,7 +676,7 @@ const QRPreview = forwardRef<QRPreviewHandle, Props>(
             )}
             <p
               style={{
-                color: "#06b6d4",
+                color: caption.labelColor ?? "#06b6d4",
                 fontSize: "10px",
                 fontWeight: 600,
                 letterSpacing: "0.10em",
@@ -730,6 +742,44 @@ function CaptionIcon({ type }: { type: QRCaption["iconType"] }) {
       return (
         <svg {...shared}>
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+        </svg>
+      );
+    case "image-ocr":
+      return (
+        <svg {...shared}>
+          <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+          <circle cx="12" cy="13" r="4" />
+        </svg>
+      );
+    case "pdf-text":
+      return (
+        <svg {...shared}>
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+      );
+    case "whatsapp":
+      return (
+        <svg {...shared} stroke="#25D366">
+          <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+        </svg>
+      );
+    case "email":
+      return (
+        <svg {...shared}>
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+          <polyline points="22,6 12,13 2,6" />
+        </svg>
+      );
+    case "sms":
+      return (
+        <svg {...shared}>
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          <line x1="9" y1="10" x2="15" y2="10" strokeLinecap="round" />
+          <line x1="9" y1="14" x2="13" y2="14" strokeLinecap="round" />
         </svg>
       );
     default:

@@ -54,3 +54,11 @@ export function trackQRScanned(params: {
 }) {
   send("qr_scanned", params);
 }
+
+// count is the number of QR codes generated in the batch — no content is tracked
+export function trackBulkQRGenerated(params: {
+  qr_type: string;
+  count: number;
+}) {
+  send("bulk_qr_generated", params);
+}

@@ -6,6 +6,29 @@ const withPWA = require("next-pwa")({
   skipWaiting: true,
 });
 
-const nextConfig = {};
+const nextConfig = {
+  webpack: (config) => {
+    // pdfjs-dist references canvas for Node-side rendering; disable it in browser builds
+    config.resolve.alias.canvas = false;
+    return config;
+  },
+  async headers() {
+    return [
+      {
+        source: "/.well-known/assetlinks.json",
+        headers: [
+          { key: "Content-Type", value: "application/json" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
+        ],
+      },
+      {
+        source: "/pdf.worker.min.mjs",
+        headers: [
+          { key: "Content-Type", value: "text/javascript" },
+        ],
+      },
+    ];
+  },
+};
 
 module.exports = withPWA(nextConfig);

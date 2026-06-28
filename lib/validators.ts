@@ -1,4 +1,4 @@
-import type { VCardInput, LocationInput, UpiInput } from "@/types/qr";
+import type { VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
 
 export interface ValidationResult {
   valid: boolean;
@@ -76,6 +76,24 @@ export function validateUpi(upi: UpiInput): ValidationResult {
   return { valid: true };
 }
 
+const OCR_TEXT_HARD_LIMIT = 1500;
+const OCR_TEXT_WARN_AT = 800;
+
+export function validateImageText(text: string): ValidationResult {
+  if (!text.trim()) return { valid: false };
+  if (text.length > OCR_TEXT_HARD_LIMIT) {
+    return { valid: false, error: `Text must be ${OCR_TEXT_HARD_LIMIT} characters or fewer (currently ${text.length})` };
+  }
+  if (text.length > OCR_TEXT_WARN_AT) {
+    return { valid: true, warning: `Long text (${text.length} chars) creates a very dense QR code. Trim to under 800 characters for best results.` };
+  }
+  return { valid: true };
+}
+
+export function validatePdfText(text: string): ValidationResult {
+  return validateImageText(text);
+}
+
 const MAPS_URL_RE =
   /^https?:\/\/(www\.)?google\.[a-z.]+\/maps|^https?:\/\/maps\.google\.|^https?:\/\/(goo\.gl\/maps|maps\.app\.goo\.gl)/i;
 
@@ -98,6 +116,39 @@ export function validateLocation(location: LocationInput): ValidationResult {
   }
   if (isNaN(lng) || lng < -180 || lng > 180) {
     return { valid: false, error: "Longitude must be between -180 and 180" };
+  }
+  return { valid: true };
+}
+
+export function validateWhatsApp(input: WhatsAppInput): ValidationResult {
+  if (!input.countryCode) {
+    return { valid: false, error: "Please select a country code" };
+  }
+  const phone = input.phone.trim();
+  if (!phone) {
+    return { valid: false, error: "Phone number is required" };
+  }
+  if (!/^\d{7,15}$/.test(phone)) {
+    return { valid: false, error: "Phone number must be 7–15 digits (no spaces or dashes)" };
+  }
+  return { valid: true };
+}
+
+export function validateEmail(input: EmailInput): ValidationResult {
+  const email = input.email.trim();
+  if (!email) {
+    return { valid: false, error: "Email address is required" };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { valid: false, error: "Please enter a valid email address (e.g. name@example.com)" };
+  }
+  return { valid: true };
+}
+
+export function validateSms(input: SmsInput): ValidationResult {
+  const phone = input.phone.trim();
+  if (!phone) {
+    return { valid: false, error: "Phone number is required" };
   }
   return { valid: true };
 }

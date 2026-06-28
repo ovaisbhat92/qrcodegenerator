@@ -1,4 +1,6 @@
-export type QRType = "url" | "text" | "phone" | "vcard" | "location" | "upi";
+export type QRType =
+  | "url" | "text" | "phone" | "vcard" | "location" | "upi"
+  | "image-ocr" | "pdf-text" | "whatsapp" | "email" | "sms";
 
 export type DotStyle = "square" | "rounded" | "dots" | "extra-rounded";
 
@@ -30,6 +32,23 @@ export interface UpiInput {
   payeeName: string;
   amount: string;
   note: string;
+}
+
+export interface WhatsAppInput {
+  countryCode: string;
+  phone: string;
+  message: string;
+}
+
+export interface EmailInput {
+  email: string;
+  subject: string;
+  body: string;
+}
+
+export interface SmsInput {
+  phone: string;
+  message: string;
 }
 
 export interface GradientOptions {

@@ -1,4 +1,4 @@
-import type { VCardInput, LocationInput, UpiInput } from "@/types/qr";
+import type { VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
 
 // Strip ASCII control characters (U+0000–U+001F, U+007F) to prevent QR data corruption.
 function stripControlChars(value: string): string {
@@ -56,10 +56,40 @@ export function generateLocationPayload(location: LocationInput): string {
   return `https://www.google.com/maps?q=${location.lat.trim()},${location.lng.trim()}`;
 }
 
+export function generateImageTextPayload(text: string): string {
+  return stripControlChars(text);
+}
+
+export function generatePdfTextPayload(text: string): string {
+  return stripControlChars(text);
+}
+
 export function generateUpiPayload(upi: UpiInput): string {
   let url = `upi://pay?pa=${upi.upiId.trim()}&pn=${encodeURIComponent(upi.payeeName.trim())}`;
   if (upi.amount.trim()) url += `&am=${upi.amount.trim()}`;
   url += "&cu=INR";
   if (upi.note.trim()) url += `&tn=${encodeURIComponent(upi.note.trim())}`;
   return url;
+}
+
+export function generateWhatsAppPayload(input: WhatsAppInput): string {
+  const phone = `${input.countryCode}${input.phone.trim()}`;
+  if (input.message.trim()) {
+    return `https://wa.me/${phone}?text=${encodeURIComponent(input.message.trim())}`;
+  }
+  return `https://wa.me/${phone}`;
+}
+
+export function generateEmailPayload(input: EmailInput): string {
+  const email = input.email.trim();
+  const params: string[] = [];
+  if (input.subject.trim()) params.push(`subject=${encodeURIComponent(input.subject.trim())}`);
+  if (input.body.trim()) params.push(`body=${encodeURIComponent(input.body.trim())}`);
+  return params.length > 0 ? `mailto:${email}?${params.join("&")}` : `mailto:${email}`;
+}
+
+export function generateSmsPayload(input: SmsInput): string {
+  const phone = input.phone.trim();
+  if (input.message.trim()) return `sms:${phone}?body=${encodeURIComponent(input.message.trim())}`;
+  return `sms:${phone}`;
 }
