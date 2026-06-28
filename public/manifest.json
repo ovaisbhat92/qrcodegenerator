@@ -3,6 +3,7 @@
   "short_name": "QR Maker",
   "description": "Free QR Code Generator — Create custom QR codes for URLs, UPI, contacts, locations and more",
   "start_url": "/",
+  "id": "/?source=pwa",
   "display": "standalone",
   "background_color": "#0a1628",
   "theme_color": "#06b6d4",
