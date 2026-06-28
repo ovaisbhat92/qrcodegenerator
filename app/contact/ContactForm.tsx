@@ -29,11 +29,11 @@ export default function ContactForm() {
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
           Please email us directly at{" "}
           <a
-            href="mailto:contact@freeqrcodemaker.in"
+            href="mailto:ovaisbhat185@gmail.com"
             style={{ color: "#06b6d4" }}
             className="underline underline-offset-2"
           >
-            contact@freeqrcodemaker.in
+            ovaisbhat185@gmail.com
           </a>{" "}
           as our form is currently being set up.
         </p>

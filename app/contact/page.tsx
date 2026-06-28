@@ -54,11 +54,11 @@ export default function ContactPage() {
               Email us directly
             </p>
             <a
-              href="mailto:contact@freeqrcodemaker.in"
+              href="mailto:ovaisbhat185@gmail.com"
               className="text-sm font-medium underline underline-offset-2"
               style={{ color: "#06b6d4" }}
             >
-              contact@freeqrcodemaker.in
+              ovaisbhat185@gmail.com
             </a>
             <p className="mt-1 text-xs" style={{ color: "var(--text-hint)" }}>
               We typically respond within 24–48 hours.

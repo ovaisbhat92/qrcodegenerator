@@ -30,7 +30,7 @@ const PRESETS: { name: string; color: string; preset: PresetKey }[] = [
     color: "#000000",
     preset: {
       fgColor: "#000000", bgColor: "#ffffff", transparentBg: false,
-      dotStyle: "square", cornerStyle: "square", cornerColor: "#000000", gradient: null,
+      dotStyle: "rounded", cornerStyle: "square", cornerColor: "#000000", gradient: null,
     },
   },
   {
@@ -46,7 +46,7 @@ const PRESETS: { name: string; color: string; preset: PresetKey }[] = [
     color: "#15803D",
     preset: {
       fgColor: "#15803D", bgColor: "#ffffff", transparentBg: false,
-      dotStyle: "dots", cornerStyle: "circle", cornerColor: "#15803D", gradient: null,
+      dotStyle: "rounded", cornerStyle: "rounded", cornerColor: "#15803D", gradient: null,
     },
   },
   {
@@ -62,7 +62,7 @@ const PRESETS: { name: string; color: string; preset: PresetKey }[] = [
     color: "#4B5563",
     preset: {
       fgColor: "#4B5563", bgColor: "#F9FAFB", transparentBg: false,
-      dotStyle: "square", cornerStyle: "square", cornerColor: "#4B5563", gradient: null,
+      dotStyle: "rounded", cornerStyle: "rounded", cornerColor: "#4B5563", gradient: null,
     },
   },
 ];
