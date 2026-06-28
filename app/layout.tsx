@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "QR Code Generator — Free, Custom, Instant",
   description:
     "Generate custom QR codes for website URLs, plain text, phone numbers, contacts, and locations. Supports gradients, dot styles, corner styles, and logo embedding. Runs entirely in your browser.",
+  manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon-32x32.png",
@@ -21,7 +22,13 @@ export const metadata: Metadata = {
     google: "Foiqvscys0u84Y2-tSBOsiLOjUFbabR9tmfQ8tirSAA",
   },
   other: {
-    "theme-color": "#0a1628",
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "apple-mobile-web-app-title": "QR Maker",
+    "application-name": "QR Maker",
+    "msapplication-TileColor": "#0a1628",
+    "theme-color": "#06b6d4",
   },
 };
 
