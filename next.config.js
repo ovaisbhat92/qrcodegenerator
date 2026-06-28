@@ -6,6 +6,24 @@ const withPWA = require("next-pwa")({
   skipWaiting: true,
 });
 
-const nextConfig = {};
+const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: "/.well-known/assetlinks.json",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/json",
+          },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600",
+          },
+        ],
+      },
+    ];
+  },
+};
 
 module.exports = withPWA(nextConfig);
