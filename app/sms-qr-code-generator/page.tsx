@@ -59,10 +59,10 @@ const faqSchema = {
     },
     {
       "@type": "Question",
-      name: "What are the best uses for an SMS QR code?",
+      name: "Does an SMS QR code work on iPhone (iOS)?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "SMS QR codes are ideal for customer support lines (scan to text us), appointment booking confirmations, opt-in campaigns (scan to subscribe to SMS updates), feedback collection, and two-factor authentication fallbacks. They work great on physical signage, packaging, and printed marketing materials.",
+        text: "Yes, but with a caveat. iOS uses the sms: URI scheme and pre-filled messages generally work in the native Messages app. However, pre-filled message support can be inconsistent on some iOS versions. Android's messaging apps handle the smsto: format reliably. Always test your QR code on both platforms before printing.",
       },
     },
     {
@@ -89,33 +89,152 @@ export default function SmsQRPage() {
           <h1 className="mb-4 text-3xl font-bold">Free SMS QR Code Generator</h1>
 
           <p className="mb-4" style={{ color: "var(--text-secondary)" }}>
-            An SMS QR code encodes a phone number (and optionally a pre-written text message) into a scannable code. When anyone scans it with their phone camera, the default messaging app opens with your number already filled in, ready to send. No app download or internet connection required.
+            An SMS QR code encodes a phone number — and optionally a pre-written text message —
+            into a scannable code. When anyone scans it with their phone camera, the default
+            messaging app opens with your number already filled in, ready to send. No app download,
+            no WhatsApp account, and no internet connection required beyond the cellular network
+            itself. It is the most universally compatible way to let someone text you from a
+            printed surface.
           </p>
 
-          <h2 className="mb-3 mt-8 text-xl font-semibold">How to create an SMS QR code</h2>
+          <h2 className="mb-3 mt-8 text-xl font-semibold">How the smsto: URI Format Works</h2>
+          <p className="mb-4" style={{ color: "var(--text-secondary)" }}>
+            SMS QR codes use the{" "}
+            <code style={{ background: "var(--bg-input)", borderRadius: "4px", padding: "1px 5px", fontSize: "0.85em" }}>smsto:</code>{" "}
+            URI scheme, a standard supported by Android messaging apps and the iOS native Messages
+            app. The URI structure is simple:{" "}
+            <code style={{ background: "var(--bg-input)", borderRadius: "4px", padding: "1px 5px", fontSize: "0.85em" }}>smsto:+919876543210:CONFIRM</code> —
+            where the number comes first, followed by a colon, then the optional pre-filled message.
+            When the phone camera decodes this URI, it passes it to the operating system, which
+            opens the default SMS application with the number and message pre-loaded. The sender
+            just taps Send.
+          </p>
+          <p className="mb-4" style={{ color: "var(--text-secondary)" }}>
+            When entering the phone number, use only digits and the{" "}
+            <code style={{ background: "var(--bg-input)", borderRadius: "4px", padding: "1px 5px", fontSize: "0.85em" }}>+</code>{" "}
+            prefix for the country code. Strip any spaces, dashes, parentheses, or other formatting
+            characters from the number — these can cause the URI to fail on some devices. For
+            example, enter{" "}
+            <code style={{ background: "var(--bg-input)", borderRadius: "4px", padding: "1px 5px", fontSize: "0.85em" }}>+919876543210</code>{" "}
+            rather than{" "}
+            <code style={{ background: "var(--bg-input)", borderRadius: "4px", padding: "1px 5px", fontSize: "0.85em" }}>+91 98765-43210</code>.
+          </p>
+
+          <h2 className="mb-3 mt-8 text-xl font-semibold">How to Create an SMS QR Code</h2>
           <ol className="mb-4 list-decimal space-y-2 pl-5" style={{ color: "var(--text-secondary)" }}>
             <li>Select the <strong>SMS</strong> tab in the generator above.</li>
-            <li>Enter the phone number including the country code (e.g. +91 9876543210).</li>
-            <li>Optionally type a pre-filled message (e.g. &quot;BOOK&quot; or &quot;I would like more information&quot;).</li>
-            <li>Customise the style and download as PNG, SVG, or PDF.</li>
+            <li>Enter the phone number with country code — digits only (e.g. +91 9876543210).</li>
+            <li>Optionally type a pre-filled message such as &quot;CONFIRM&quot;, &quot;BOOK&quot;, or &quot;I would like more information.&quot;</li>
+            <li>Customise the dot style, colours, and optionally add your logo.</li>
+            <li>Download as PNG, SVG, JPEG, WebP, or PDF.</li>
           </ol>
 
-          <h2 className="mb-3 mt-8 text-xl font-semibold">Top use cases for SMS QR codes</h2>
+          <h2 className="mb-3 mt-8 text-xl font-semibold">Top Use Cases for SMS QR Codes</h2>
           <p className="mb-4" style={{ color: "var(--text-secondary)" }}>
-            <strong>Customer support</strong> — place a &quot;Text us&quot; QR on product packaging or receipts so customers can instantly reach your support line without typing a number. <strong>Appointment reminders</strong> — let patients or clients confirm appointments by scanning a code that sends &quot;CONFIRM&quot; to your number. <strong>SMS opt-in campaigns</strong> — use a QR on print ads or posters to let customers subscribe to SMS promotions with a single scan. <strong>Event RSVPs</strong> — guests scan and text their name to confirm attendance.
+            SMS QR codes are practical across many industries precisely because they work without
+            internet access and require no account on the sender&apos;s side:
+          </p>
+          <ul className="mb-4 list-disc space-y-2 pl-5" style={{ color: "var(--text-secondary)" }}>
+            <li>
+              <strong>Appointment reminders and confirmations</strong> — clinics, salons, and
+              service businesses can print a QR code on appointment cards. Patients scan and send
+              &quot;CONFIRM&quot; or &quot;CANCEL&quot; with a single tap, reducing no-shows without
+              requiring a phone call.
+            </li>
+            <li>
+              <strong>Customer support lines</strong> — place a &quot;Text us&quot; QR code on product
+              packaging, receipts, or delivery notes so customers can reach your support number
+              immediately, without typing.
+            </li>
+            <li>
+              <strong>Delivery notifications</strong> — logistics companies can include a QR code
+              on delivery attempts so recipients can schedule a re-delivery by texting a keyword.
+            </li>
+            <li>
+              <strong>SMS marketing opt-ins</strong> — display a QR code on a poster, billboard,
+              or print ad with the pre-filled message &quot;JOIN&quot; or &quot;SUBSCRIBE&quot; to let
+              customers enrol in your SMS mailing list with a single scan, no web form required.
+            </li>
+            <li>
+              <strong>Event RSVPs</strong> — guests scan a QR code on the invitation and send
+              their name to confirm attendance, with no app or website login needed.
+            </li>
+            <li>
+              <strong>Emergency and safety signage</strong> — in areas where internet may be
+              unreliable, an SMS QR code on safety signage lets people text for help using only
+              cellular coverage.
+            </li>
+          </ul>
+
+          <h2 className="mb-3 mt-8 text-xl font-semibold">Android vs iOS Compatibility</h2>
+          <p className="mb-4" style={{ color: "var(--text-secondary)" }}>
+            SMS QR codes work on both Android and iOS, but with slight differences worth knowing
+            before you print. <strong>Android</strong> has the most consistent support: the{" "}
+            <code style={{ background: "var(--bg-input)", borderRadius: "4px", padding: "1px 5px", fontSize: "0.85em" }}>smsto:</code>{" "}
+            URI with a pre-filled message body is reliably handled by the default Messages app, as
+            well as third-party apps like Google Messages, Samsung Messages, and others.{" "}
+            <strong>iOS</strong> supports the{" "}
+            <code style={{ background: "var(--bg-input)", borderRadius: "4px", padding: "1px 5px", fontSize: "0.85em" }}>sms:</code>{" "}
+            URI natively in the Apple Messages app, but pre-filled message body support has varied
+            across iOS versions — some older versions open the compose window but leave the body
+            blank. For campaigns that rely on a specific keyword being sent, always test on a
+            representative iOS device before going live. For simple &quot;open a text to this number&quot;
+            use cases — where the user types their own message — iOS works perfectly.
           </p>
 
-          <h2 className="mb-3 mt-8 text-xl font-semibold">Works on all phones without internet</h2>
+          <h2 className="mb-3 mt-8 text-xl font-semibold">Pre-Filled Message Best Practices</h2>
           <p className="mb-4" style={{ color: "var(--text-secondary)" }}>
-            The sms: URI scheme is supported natively on Android and iOS. Unlike WhatsApp or email QR codes, SMS works even in areas with poor internet connectivity — perfect for outdoor signage, rural marketing, and any situation where data access cannot be guaranteed.
+            The pre-filled message is the feature that makes SMS QR codes genuinely powerful for
+            automation. When crafting your message:
+          </p>
+          <ul className="mb-4 list-disc space-y-2 pl-5" style={{ color: "var(--text-secondary)" }}>
+            <li>
+              <strong>Use short, uppercase keywords</strong> for automation systems — &quot;JOIN&quot;,
+              &quot;STOP&quot;, &quot;CONFIRM&quot;, &quot;INFO&quot;. These are easy for SMS automation
+              platforms to parse and act on.
+            </li>
+            <li>
+              <strong>Keep the message under 80 characters</strong> for maximum compatibility
+              across devices and operating systems.
+            </li>
+            <li>
+              <strong>Avoid special characters</strong> in the message — emoji, ampersands, and
+              percent signs can interfere with URI encoding and cause the QR code to fail on
+              some devices.
+            </li>
+            <li>
+              <strong>Use plain descriptive text</strong> when the sender types manually: &quot;I
+              would like a quote for [service]&quot; or &quot;Please call me back.&quot;
+            </li>
+          </ul>
+
+          <h2 className="mb-3 mt-8 text-xl font-semibold">SMS QR Code vs WhatsApp QR Code</h2>
+          <p className="mb-4" style={{ color: "var(--text-secondary)" }}>
+            The choice between an SMS QR code and a{" "}
+            <Link href="/whatsapp-qr-code-generator" className="hover:underline" style={{ color: "#06b6d4" }}>WhatsApp QR code</Link>{" "}
+            depends on your audience. SMS works on every mobile phone without any additional
+            app — ideal for reaching a broad demographic, rural areas with limited data access,
+            or older customers who may not use WhatsApp. WhatsApp QR codes offer richer messaging
+            (images, documents, voice notes) and are better suited for businesses whose customers
+            are already active WhatsApp users. If you are targeting a younger, urban audience in
+            India, the Middle East, or Southeast Asia where WhatsApp penetration is very high, a
+            WhatsApp QR code is often more effective. For universal reach across all demographics,
+            use an SMS QR code.
           </p>
 
-          <h2 className="mb-3 mt-8 text-xl font-semibold">Pre-filled keywords for automation</h2>
+          <h2 className="mb-3 mt-8 text-xl font-semibold">Download Formats and Customisation</h2>
           <p className="mb-4" style={{ color: "var(--text-secondary)" }}>
-            If you use SMS automation software, add a keyword as the pre-filled message — for example, &quot;JOIN&quot; or &quot;STOP&quot;. When the customer scans and sends, your automation system processes the keyword automatically. This is a common pattern for loyalty programmes, opt-ins, and unsubscribes.
+            Once you are satisfied with your SMS QR code, download it in the format that suits your
+            use case. <strong>PNG</strong> is ideal for digital sharing and most standard print
+            jobs. <strong>SVG</strong> is the best choice for large-format printing — banners,
+            window stickers, or outdoor signage — because it scales to any size without losing
+            clarity. <strong>PDF</strong> provides a print-ready A4 file to hand directly to a
+            designer or print shop. Use the Customise panel to select your foreground and background
+            colours, choose a dot shape, and optionally add your logo for a branded QR code that
+            matches your marketing materials.
           </p>
 
-          <h2 className="mb-3 mt-8 text-xl font-semibold">Frequently asked questions</h2>
+          <h2 className="mb-3 mt-8 text-xl font-semibold">Frequently Asked Questions</h2>
           <div className="space-y-4">
             {faqSchema.mainEntity.map((faq) => (
               <details key={faq.name} className="rounded-xl p-4" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
@@ -125,13 +244,16 @@ export default function SmsQRPage() {
             ))}
           </div>
 
-          <nav className="mt-10 flex flex-wrap gap-3 text-sm" aria-label="Related tools">
-            <Link href="/qr-code-generator" className="hover:underline" style={{ color: "#06b6d4" }}>QR Code Generator</Link>
-            <Link href="/whatsapp-qr-code-generator" className="hover:underline" style={{ color: "#06b6d4" }}>WhatsApp QR Code</Link>
-            <Link href="/email-qr-code-generator" className="hover:underline" style={{ color: "#06b6d4" }}>Email QR Code</Link>
-            <Link href="/phone-qr-code-generator" className="hover:underline" style={{ color: "#06b6d4" }}>Phone QR Code</Link>
-            <Link href="/bulk-qr-generator" className="hover:underline" style={{ color: "#06b6d4" }}>Bulk QR Generator</Link>
-          </nav>
+          <div className="mt-10 rounded-xl p-5" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
+            <p className="mb-3 text-sm font-semibold">Related QR code generators</p>
+            <nav className="flex flex-wrap gap-3 text-sm" aria-label="Related tools">
+              <Link href="/whatsapp-qr-code-generator" className="hover:underline" style={{ color: "#06b6d4" }}>WhatsApp QR Code Generator</Link>
+              <Link href="/phone-qr-code-generator" className="hover:underline" style={{ color: "#06b6d4" }}>Phone QR Code Generator</Link>
+              <Link href="/vcard-qr-code-generator" className="hover:underline" style={{ color: "#06b6d4" }}>vCard QR Code Generator</Link>
+              <Link href="/qr-code-generator" className="hover:underline" style={{ color: "#06b6d4" }}>QR Code Generator</Link>
+              <Link href="/bulk-qr-generator" className="hover:underline" style={{ color: "#06b6d4" }}>Bulk QR Generator</Link>
+            </nav>
+          </div>
         </article>
       </main>
     </>

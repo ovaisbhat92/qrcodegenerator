@@ -28,25 +28,33 @@ function escapeVCard(s: string): string {
 }
 
 export function generateVCardPayload(vcard: VCardInput): string {
-  const nameParts = vcard.fullName.trim().split(/\s+/);
+  const fullName = vcard.fullName.trim();
+  const nameParts = fullName.split(/\s+/);
   const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
   const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : "";
 
-  const lines: string[] = [
+  const phone   = vcard.phone.trim();
+  const email   = vcard.email.trim();
+  const company = vcard.company.trim();
+  const jobTitle = vcard.jobTitle.trim();
+  const website = vcard.website.trim();
+  const address = vcard.address.trim();
+
+  const lines = [
     "BEGIN:VCARD",
     "VERSION:3.0",
-    `N:${escapeVCard(lastName)};${escapeVCard(firstName)};;;`,
-    `FN:${escapeVCard(vcard.fullName.trim())}`,
-  ];
-  if (vcard.company)  lines.push(`ORG:${escapeVCard(vcard.company)}`);
-  if (vcard.jobTitle) lines.push(`TITLE:${escapeVCard(vcard.jobTitle)}`);
-  if (vcard.phone)    lines.push(`TEL;TYPE=CELL:${vcard.phone.trim()}`);
-  if (vcard.email)    lines.push(`EMAIL:${vcard.email.trim()}`);
-  if (vcard.website)  lines.push(`URL:${vcard.website.trim()}`);
-  if (vcard.address)  lines.push(`ADR:;;${escapeVCard(vcard.address)};;;;`);
-  lines.push("END:VCARD");
+    `FN:${fullName}`,
+    `N:${lastName};${firstName};;;`,
+    phone    ? `TEL;TYPE=CELL:${phone}`    : null,
+    email    ? `EMAIL:${email}`            : null,
+    company  ? `ORG:${company}`            : null,
+    jobTitle ? `TITLE:${jobTitle}`         : null,
+    website  ? `URL:${website}`            : null,
+    address  ? `ADR:;;${address};;;;`      : null,
+    "END:VCARD",
+  ].filter(Boolean);
 
-  return lines.join("\r\n");
+  return lines.join("\r\n") + "\r\n";
 }
 
 export function generateLocationPayload(location: LocationInput): string {
@@ -81,7 +89,10 @@ export function generateEmailPayload(input: EmailInput): string {
 }
 
 export function generateSmsPayload(input: SmsInput): string {
-  const phone = input.phone.trim().replace(/[\s\-().]/g, "");
-  if (input.message.trim()) return `sms:${phone}?body=${encodeURIComponent(input.message.trim())}`;
-  return `sms:${phone}`;
+  // smsto: is the most universally compatible format for opening the SMS app on Android + iOS.
+  // Alternative: sms:+{phone}?body={encodedMessage} — swap the scheme below if needed.
+  const digits = input.phone.trim().replace(/[\s\-().+]/g, "");
+  const phone = `+${digits}`;
+  if (input.message.trim()) return `smsto:${phone}:${input.message.trim()}`;
+  return `smsto:${phone}`;
 }

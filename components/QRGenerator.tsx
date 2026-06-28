@@ -190,8 +190,31 @@ export default function QRGenerator({
     return map[qrType] ?? null;
   }, [qrType, payload, whatsappInput, emailInput, smsInput]);
 
+  // For email with subject/body, auto-lower EC to M and bump size to ≥400px for scanability.
+  const effectiveCustomization = useMemo((): CustomizationOptions => {
+    if (qrType === "email" && (emailInput.subject.trim() || emailInput.body.trim())) {
+      return {
+        ...customization,
+        errorCorrection: customization.errorCorrection === "H" ? "M" : customization.errorCorrection,
+        size: Math.max(customization.size, 400),
+      };
+    }
+    return customization;
+  }, [qrType, emailInput.subject, emailInput.body, customization]);
+
   const isDisabled = !validation?.valid || !payload;
   const [customizationOpen, setCustomizationOpen] = useState(false);
+
+  // Read ?type=text&content=... URL params on mount (set by image-to-text page).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("type");
+    const content = params.get("content");
+    if (type === "text" && content) {
+      setQrType("text");
+      setTextInput(decodeURIComponent(content));
+    }
+  }, []);
 
   // Fire qr_generated 1.5 s after the payload stabilises — avoids a flood
   // of events while the user is still typing. Structural params only; no content.
@@ -361,7 +384,7 @@ export default function QRGenerator({
                   ref={previewRef}
                   data={payload}
                   qrType={qrType}
-                  options={customization}
+                  options={effectiveCustomization}
                   upiCaption={upiCaption}
                   caption={caption}
                 />
@@ -971,8 +994,6 @@ function EmailForm({
     onChange({ ...value, [key]: val });
 
   const emailHasError = value.email !== "" && !validation.valid && !!validation.error;
-  const combinedLength = value.subject.length + value.body.length;
-  const showLengthWarning = combinedLength > 200;
 
   return (
     <div className="space-y-3">
@@ -1016,9 +1037,9 @@ function EmailForm({
           className="themed-input resize-none"
         />
       </Field>
-      {showLengthWarning && (
+      {validation.warning && (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
-          ⚠️ Your subject and body are long — the QR code may be hard to scan. Consider shortening them.
+          ⚠️ {validation.warning}
         </p>
       )}
     </div>
@@ -1077,7 +1098,7 @@ function SmsForm({
         className="flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs"
         style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-hint)" }}
       >
-        Note: SMS QR codes open the default messages app on most Android and iOS devices. Behavior may vary by device and operating system.
+        SMS QR codes work best on Android. iPhone users may see plain text depending on their QR scanner app.
       </p>
     </div>
   );

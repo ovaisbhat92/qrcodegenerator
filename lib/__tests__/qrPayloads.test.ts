@@ -93,10 +93,10 @@ const BASE_VCARD: VCardInput = {
 };
 
 describe("generateVCardPayload", () => {
-  it("starts with BEGIN:VCARD and ends with END:VCARD", () => {
+  it("starts with BEGIN:VCARD and ends with END:VCARD\\r\\n", () => {
     const result = generateVCardPayload(BASE_VCARD);
     expect(result.startsWith("BEGIN:VCARD")).toBe(true);
-    expect(result.endsWith("END:VCARD")).toBe(true);
+    expect(result.endsWith("END:VCARD\r\n")).toBe(true);
   });
 
   it("includes VERSION:3.0", () => {
@@ -297,21 +297,21 @@ describe("generateEmailPayload", () => {
 const BASE_SMS: SmsInput = { phone: "+91 9876543210", message: "" };
 
 describe("generateSmsPayload", () => {
-  it("produces an sms: URI with only the phone number", () => {
-    expect(generateSmsPayload(BASE_SMS)).toBe("sms:+919876543210");
+  it("produces a smsto: URI with only the phone number", () => {
+    expect(generateSmsPayload(BASE_SMS)).toBe("smsto:+919876543210");
   });
 
-  it("appends encoded body when message is provided", () => {
+  it("appends message after colon when message is provided", () => {
     const result = generateSmsPayload({ ...BASE_SMS, message: "Hi there" });
-    expect(result).toBe("sms:+919876543210?body=Hi%20there");
+    expect(result).toBe("smsto:+919876543210:Hi there");
   });
 
-  it("omits ?body param when message is empty", () => {
-    expect(generateSmsPayload(BASE_SMS)).not.toContain("?body");
+  it("omits message when message is empty", () => {
+    expect(generateSmsPayload(BASE_SMS)).toBe("smsto:+919876543210");
   });
 
-  it("omits ?body param when message is whitespace only", () => {
-    expect(generateSmsPayload({ ...BASE_SMS, message: "   " })).not.toContain("?body");
+  it("omits message when whitespace only", () => {
+    expect(generateSmsPayload({ ...BASE_SMS, message: "   " })).toBe("smsto:+919876543210");
   });
 });
 

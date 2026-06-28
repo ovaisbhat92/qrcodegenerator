@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/email-qr-code-generator", priority: 0.8 },
     { path: "/sms-qr-code-generator", priority: 0.8 },
     { path: "/bulk-qr-generator", priority: 0.8 },
+    { path: "/image-to-text", priority: 0.8 },
   ];
 
   return pages.map(({ path, priority }) => ({

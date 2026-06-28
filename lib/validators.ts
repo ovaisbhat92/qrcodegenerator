@@ -124,6 +124,13 @@ export function validateEmail(input: EmailInput): ValidationResult {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { valid: false, error: "Please enter a valid email address (e.g. name@example.com)" };
   }
+  const mailtoLength = `mailto:${email}?subject=${encodeURIComponent(input.subject.trim())}&body=${encodeURIComponent(input.body.trim())}`.length;
+  if (mailtoLength > 300) {
+    return {
+      valid: true,
+      warning: "Your email QR data is too long and may not scan correctly. Please shorten the subject and/or body.",
+    };
+  }
   return { valid: true };
 }
 
