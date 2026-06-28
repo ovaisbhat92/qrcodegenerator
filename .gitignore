@@ -3,3 +3,4 @@ next-env.d.ts
 node_modules/
 public/sw.js
 public/workbox-*.js
+public/pdf.worker.min.mjs

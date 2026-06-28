@@ -12,6 +12,8 @@ import {
   generateVCardPayload,
   generateLocationPayload,
   generateUpiPayload,
+  generateImageTextPayload,
+  generatePdfTextPayload,
 } from "@/lib/qrPayloads";
 import {
   validateUrl,
@@ -20,7 +22,11 @@ import {
   validateVCard,
   validateLocation,
   validateUpi,
+  validateImageText,
+  validatePdfText,
 } from "@/lib/validators";
+import ImageOcrInput from "@/components/ImageOcrInput";
+import PdfTextInput from "@/components/PdfTextInput";
 import QRScanner from "@/components/QRScanner";
 import QRTypeSelector from "@/components/QRTypeSelector";
 import CustomizationPanel from "@/components/CustomizationPanel";
@@ -95,6 +101,8 @@ export default function QRGenerator({
   const [vcardInput, setVcardInput] = useState<VCardInput>(DEFAULT_VCARD);
   const [locationInput, setLocationInput] = useState<LocationInput>(DEFAULT_LOCATION);
   const [upiInput, setUpiInput] = useState<UpiInput>(DEFAULT_UPI);
+  const [imageOcrText, setImageOcrText] = useState("");
+  const [pdfText, setPdfText] = useState("");
 
   const { customization, setCustomization, resetToDefaults } = usePersistedCustomization();
   const previewRef = useRef<QRPreviewHandle>(null);
@@ -125,8 +133,16 @@ export default function QRGenerator({
         const v = validateUpi(upiInput);
         return { validation: v, payload: v.valid ? generateUpiPayload(upiInput) : "" };
       }
+      case "image-ocr": {
+        const v = validateImageText(imageOcrText);
+        return { validation: v, payload: v.valid ? generateImageTextPayload(imageOcrText) : "" };
+      }
+      case "pdf-text": {
+        const v = validatePdfText(pdfText);
+        return { validation: v, payload: v.valid ? generatePdfTextPayload(pdfText) : "" };
+      }
     }
-  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput, upiInput]);
+  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput, upiInput, imageOcrText, pdfText]);
 
   const upiCaption = useMemo((): UpiCaption | null => {
     if (qrType !== "upi" || !upiInput.payeeName.trim()) return null;
@@ -141,9 +157,21 @@ export default function QRGenerator({
       phone:    { labelText: "Scan this to call me",          iconType: "phone" },
       vcard:    { labelText: "Scan this to save contact",     iconType: "vcard" },
       location: { labelText: "Scan this to find my location", iconType: "location" },
+      "image-ocr": {
+        mainText: imageOcrText.length > 40
+          ? imageOcrText.slice(0, 40) + "…"
+          : imageOcrText,
+        labelText: "Scan this to read extracted text",
+        iconType: "image-ocr",
+      },
+      "pdf-text": {
+        mainText: pdfText.length > 40 ? pdfText.slice(0, 40) + "…" : pdfText,
+        labelText: "Scan this to read document text",
+        iconType: "pdf-text",
+      },
     };
     return map[qrType] ?? null;
-  }, [qrType, payload]);
+  }, [qrType, payload, imageOcrText, pdfText]);
 
   const isDisabled = !validation?.valid || !payload;
   const [customizationOpen, setCustomizationOpen] = useState(false);
@@ -296,6 +324,12 @@ export default function QRGenerator({
               )}
               {qrType === "upi" && (
                 <UpiForm value={upiInput} onChange={setUpiInput} validation={validation} />
+              )}
+              {qrType === "image-ocr" && (
+                <ImageOcrInput value={imageOcrText} onChange={setImageOcrText} />
+              )}
+              {qrType === "pdf-text" && (
+                <PdfTextInput value={pdfText} onChange={setPdfText} />
               )}
             </div>
           </Card>

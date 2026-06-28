@@ -56,6 +56,14 @@ export function generateLocationPayload(location: LocationInput): string {
   return `https://www.google.com/maps?q=${location.lat.trim()},${location.lng.trim()}`;
 }
 
+export function generateImageTextPayload(text: string): string {
+  return stripControlChars(text);
+}
+
+export function generatePdfTextPayload(text: string): string {
+  return stripControlChars(text);
+}
+
 export function generateUpiPayload(upi: UpiInput): string {
   let url = `upi://pay?pa=${upi.upiId.trim()}&pn=${encodeURIComponent(upi.payeeName.trim())}`;
   if (upi.amount.trim()) url += `&am=${upi.amount.trim()}`;

@@ -7,6 +7,11 @@ const withPWA = require("next-pwa")({
 });
 
 const nextConfig = {
+  webpack: (config) => {
+    // pdfjs-dist references canvas for Node-side rendering; disable it in browser builds
+    config.resolve.alias.canvas = false;
+    return config;
+  },
   async headers() {
     return [
       {

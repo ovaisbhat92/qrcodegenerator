@@ -1,4 +1,4 @@
-export type QRType = "url" | "text" | "phone" | "vcard" | "location" | "upi";
+export type QRType = "url" | "text" | "phone" | "vcard" | "location" | "upi" | "image-ocr" | "pdf-text";
 
 export type DotStyle = "square" | "rounded" | "dots" | "extra-rounded";
 
