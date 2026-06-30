@@ -16,6 +16,7 @@ const TYPES: { id: QRType; label: string; icon: React.ReactNode }[] = [
   { id: "url",      label: "Website URL", icon: <LinkIcon /> },
   { id: "upi",      label: "UPI",         icon: <UpiIcon /> },
   { id: "wifi",     label: "WiFi",        icon: <WifiIcon /> },
+  { id: "location", label: "Location",    icon: <LocationIcon /> },
   { id: "text",     label: "Plain Text",  icon: <TextIcon /> },
 ];
 
@@ -95,4 +96,8 @@ function WifiIcon() {
 
 function TextIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" /><polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" /><line x1="16" y1="13" x2="8" y2="13" strokeLinecap="round" strokeLinejoin="round" /><line x1="16" y1="17" x2="8" y2="17" strokeLinecap="round" strokeLinejoin="round" /><polyline points="10 9 9 9 8 9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function LocationIcon() {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
