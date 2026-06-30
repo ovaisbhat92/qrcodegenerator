@@ -22,6 +22,22 @@ type ParsedResult =
   | { type: "geo"; raw: string; lat: string; lng: string }
   | { type: "text"; raw: string };
 
+function toGrayscale(imageData: ImageData): ImageData {
+  const src = imageData.data;
+  const out = new Uint8ClampedArray(src.length);
+  for (let i = 0; i < src.length; i += 4) {
+    const alpha = src[i + 3];
+    const luma = alpha < 128
+      ? 255  // treat transparent pixels as white background
+      : Math.round(0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2]);
+    out[i] = luma;
+    out[i + 1] = luma;
+    out[i + 2] = luma;
+    out[i + 3] = 255;
+  }
+  return new ImageData(out, imageData.width, imageData.height);
+}
+
 function parseResult(raw: string): ParsedResult {
   if (/^https:\/\/wa\.me\//i.test(raw)) {
     const phone = raw.replace(/^https:\/\/wa\.me\//i, "").split("?")[0];
@@ -162,15 +178,24 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
       canvas.height = img.height;
       const ctx = canvas.getContext("2d");
       if (!ctx) { setError("Could not read image."); return; }
+      // Draw white background first so transparent PNGs get a solid white base
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+      // Grayscale pass — converts colored QR dots (cyan, gradient, etc.) to
+      // luminance values that jsQR can reliably threshold
+      const gray = toGrayscale(imageData);
+      let code = jsQR(gray.data, gray.width, gray.height, { inversionAttempts: "attemptBoth" });
+      if (!code) code = jsQR(gray.data, gray.width, gray.height, { inversionAttempts: "onlyInvert" });
+      // Fallback: try original colour data in case grayscale conversion hurt contrast
+      if (!code) code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
       if (!code) code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "onlyInvert" });
       if (code) {
         setParsed(parseResult(code.data));
         trackQRScanned({ method: "upload", content_type: detectContentType(code.data) });
       } else {
-        setError("Could not find a QR code in this image. Make sure the QR code is clearly visible and well-lit. Try cropping the image to just the QR code before uploading.");
+        setError("Could not find a QR code in this image. For best results use a plain black-and-white QR. Try cropping the image to just the QR code before uploading.");
       }
     };
     img.onerror = () => { URL.revokeObjectURL(objectUrl); setError("Could not load image file."); };
