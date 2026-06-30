@@ -38,6 +38,7 @@ export default function QRTypeSelector({ value, onChange }: Props) {
             type="button"
             aria-pressed={active}
             onClick={() => onChange(t.id)}
+            className="qr-type-btn"
             style={{
               display: "flex",
               flexDirection: "column",
@@ -49,14 +50,6 @@ export default function QRTypeSelector({ value, onChange }: Props) {
               fontWeight: 500,
               gap: "4px",
               minHeight: "64px",
-              cursor: "pointer",
-              border: active ? "1px solid transparent" : "1px solid rgba(255,255,255,0.08)",
-              background: active
-                ? "linear-gradient(135deg, #06b6d4, #0891b2)"
-                : "rgba(255,255,255,0.04)",
-              color: active ? "#ffffff" : "rgba(255,255,255,0.7)",
-              boxShadow: active ? "0 2px 8px rgba(6,182,212,0.3)" : "none",
-              transition: "all 0.15s ease",
             }}
           >
             {t.icon}

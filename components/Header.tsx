@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -120,34 +119,13 @@ function NavLinkItem({
   pad: string;
   size: string;
 }) {
-  const [hovered, setHovered] = useState(false);
   return (
     <li style={{ flexShrink: 0 }}>
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          display: "block",
-          whiteSpace: "nowrap",
-          padding: pad,
-          fontSize: size,
-          borderRadius: "8px",
-          transition: "background 0.15s, color 0.15s, box-shadow 0.15s",
-          ...(active
-            ? {
-                color: "#fff",
-                background: "#06b6d4",
-                fontWeight: 700,
-                boxShadow: "0 2px 8px rgba(6,182,212,0.4)",
-              }
-            : {
-                color: "#0f172a",
-                background: hovered ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.88)",
-                fontWeight: 600,
-              }),
-        }}
+        className="nav-link"
+        style={{ padding: pad, fontSize: size }}
       >
         {label}
       </Link>

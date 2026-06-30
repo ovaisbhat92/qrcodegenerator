@@ -18,7 +18,7 @@ type ParsedResult =
   | { type: "upi"; raw: string; upiId: string; payeeName: string; amount: string; note: string }
   | { type: "phone"; raw: string; number: string }
   | { type: "vcard"; raw: string; fn: string; tel: string; email: string; org: string; title: string }
-  | { type: "wifi"; raw: string; ssid: string; password: string }
+  | { type: "wifi"; raw: string; ssid: string; password: string; encryption: string }
   | { type: "geo"; raw: string; lat: string; lng: string }
   | { type: "text"; raw: string };
 
@@ -152,7 +152,8 @@ function parseResult(raw: string): ParsedResult {
   if (/^WIFI:/i.test(raw)) {
     const ssid = raw.match(/S:([^;]*)/)?.[1] ?? "";
     const password = raw.match(/P:([^;]*)/)?.[1] ?? "";
-    return { type: "wifi", raw, ssid, password };
+    const encryption = raw.match(/T:([^;]*)/)?.[1] ?? "WPA";
+    return { type: "wifi", raw, ssid, password, encryption };
   }
 
   if (/^geo:/i.test(raw)) {
@@ -849,29 +850,7 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
   }
 
   if (parsed.type === "wifi") {
-    return (
-      <div
-        className="rounded-xl p-4 space-y-3"
-        style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
-      >
-        {badge("WiFi")}
-        <div className="space-y-2">
-          <div className={rowStyle}>
-            <span className={labelStyle} style={{ color: "var(--text-hint)" }}>Network</span>
-            <span className={valueStyle} style={{ color: "var(--text-primary)" }}>{parsed.ssid}</span>
-          </div>
-          {parsed.password && (
-            <div className={rowStyle}>
-              <span className={labelStyle} style={{ color: "var(--text-hint)" }}>Password</span>
-              <span className={valueStyle} style={{ color: "var(--text-primary)", fontFamily: "monospace" }}>{parsed.password}</span>
-            </div>
-          )}
-        </div>
-        <p className="text-xs" style={{ color: "var(--text-hint)" }}>
-          Connect to this network using the details above
-        </p>
-      </div>
-    );
+    return <WifiResultCard parsed={parsed} />;
   }
 
   if (parsed.type === "geo") {
@@ -911,6 +890,115 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
         aria-label="Decoded QR code content"
       >
         {parsed.raw}
+      </p>
+    </div>
+  );
+}
+
+// ── WiFi result card ──────────────────────────────────────────────────────────
+
+function WifiResultCard({ parsed }: { parsed: Extract<ParsedResult, { type: "wifi" }> }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [copiedSsid, setCopiedSsid] = useState(false);
+  const [copiedPass, setCopiedPass] = useState(false);
+
+  async function copyText(text: string, setter: (v: boolean) => void) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setter(true);
+      setTimeout(() => setter(false), 2000);
+    } catch { /* ignore */ }
+  }
+
+  function openWifiSettings() {
+    window.location.href = `intent://wifi/#Intent;S.ssid=${encodeURIComponent(parsed.ssid)};S.password=${encodeURIComponent(parsed.password)};end`;
+  }
+
+  const badge = (
+    <span
+      className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
+      style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4" }}
+    >
+      WiFi
+    </span>
+  );
+
+  return (
+    <div
+      className="rounded-xl p-4 space-y-3"
+      style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+    >
+      {badge}
+
+      {/* SSID row */}
+      <div className="space-y-1">
+        <span className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-hint)" }}>Network (SSID)</span>
+        <div className="flex items-center gap-2">
+          <span className="flex-1 text-sm break-all" style={{ color: "var(--text-primary)" }}>{parsed.ssid}</span>
+          <button
+            type="button"
+            onClick={() => copyText(parsed.ssid, setCopiedSsid)}
+            className="btn-ghost shrink-0 rounded-lg px-2 py-1 text-xs font-semibold"
+            title="Copy network name"
+          >
+            {copiedSsid ? "Copied!" : <CopyIcon />}
+          </button>
+        </div>
+      </div>
+
+      {/* Password row */}
+      {parsed.encryption !== "nopass" && (
+        <div className="space-y-1">
+          <span className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-hint)" }}>Password</span>
+          <div className="flex items-center gap-2">
+            <span
+              className="flex-1 text-sm break-all"
+              style={{ color: "var(--text-primary)", fontFamily: "monospace", letterSpacing: showPassword ? "normal" : "0.15em" }}
+            >
+              {showPassword ? parsed.password : "•".repeat(Math.min(parsed.password.length, 16))}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="btn-ghost shrink-0 rounded-lg px-2 py-1 text-xs"
+              title={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+            <button
+              type="button"
+              onClick={() => copyText(parsed.password, setCopiedPass)}
+              className="btn-ghost shrink-0 rounded-lg px-2 py-1 text-xs font-semibold"
+              title="Copy password"
+            >
+              {copiedPass ? "Copied!" : <CopyIcon />}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Android intent button */}
+      <button
+        type="button"
+        onClick={openWifiSettings}
+        className="btn-cyan flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold"
+      >
+        <WifiIcon />
+        Open WiFi Settings (Android)
+      </button>
+
+      {/* Instructions */}
+      <div
+        className="rounded-lg p-3 text-xs space-y-1"
+        style={{ background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.2)", color: "var(--text-secondary)" }}
+      >
+        <p className="font-semibold" style={{ color: "var(--text-primary)" }}>To connect:</p>
+        <p>Open your phone&apos;s WiFi settings, select &quot;{parsed.ssid}&quot; and enter the password above. Or scan this QR code directly with your phone&apos;s native camera app to connect automatically.</p>
+      </div>
+
+      <p className="text-xs text-center" style={{ color: "var(--text-hint)" }}>
+        For automatic connection, scan the QR code directly with your phone camera. Phone cameras can connect to WiFi automatically.
       </p>
     </div>
   );
@@ -1034,6 +1122,25 @@ function WifiIcon() {
       <path d="M1.42 9a16 16 0 0121.16 0" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M8.53 16.11a6 6 0 016.95 0" strokeLinecap="round" strokeLinejoin="round" />
       <line x1="12" y1="20" x2="12.01" y2="20" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
