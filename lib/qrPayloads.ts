@@ -40,20 +40,23 @@ export function generateVCardPayload(vcard: VCardInput): string {
   const website = vcard.website.trim();
   const address = vcard.address.trim();
 
-  const lines = [
+  const lines: string[] = [
     "BEGIN:VCARD",
     "VERSION:3.0",
     `FN:${fullName}`,
     `N:${lastName};${firstName};;;`,
-    phone    ? `TEL;TYPE=CELL:${phone}`    : null,
-    email    ? `EMAIL:${email}`            : null,
-    company  ? `ORG:${company}`            : null,
-    jobTitle ? `TITLE:${jobTitle}`         : null,
-    website  ? `URL:${website}`            : null,
-    address  ? `ADR:;;${address};;;;`      : null,
-    "END:VCARD",
-  ].filter(Boolean);
+  ];
 
+  if (phone)    lines.push(`TEL;TYPE=CELL:${phone}`);
+  if (email)    lines.push(`EMAIL:${email}`);
+  if (company)  lines.push(`ORG:${company}`);
+  if (jobTitle) lines.push(`TITLE:${jobTitle}`);
+  if (website)  lines.push(`URL:${website}`);
+  if (address)  lines.push(`ADR:;;${address};;;;`);
+
+  lines.push("END:VCARD");
+
+  // CRITICAL: vCard spec requires \r\n line endings for device compatibility
   return lines.join("\r\n") + "\r\n";
 }
 
@@ -86,8 +89,12 @@ export function generateEmailPayload(input: EmailInput): string {
 }
 
 export function generateSmsPayload(input: SmsInput): string {
-  const digits = input.phone.trim().replace(/\D/g, "");
+  const cleanPhone = input.phone.replace(/[\s\-\(\)]/g, "").replace(/^\+/, "");
   // Indian mobile: 10 digits starting with 6-9 → auto-prefix +91
-  const phone = /^[6-9]\d{9}$/.test(digits) ? `+91${digits}` : `+${digits}`;
-  return `sms:${phone}`;
+  const formattedPhone = cleanPhone.length === 10 && ["6","7","8","9"].includes(cleanPhone[0])
+    ? `+91${cleanPhone}`
+    : `+${cleanPhone}`;
+  const message = input.message.trim();
+  // smsto: format embeds the message and is recognized by Android camera/Google Lens
+  return `smsto:${formattedPhone}:${message}`;
 }

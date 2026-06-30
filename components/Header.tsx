@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -31,26 +32,7 @@ export default function Header() {
     return NAV_LINKS.map(({ href, label }) => {
       const active = href === "/" ? pathname === "/" : pathname === href || pathname?.startsWith(href + "/");
       return (
-        <li key={href} style={{ flexShrink: 0 }}>
-          <Link
-            href={href}
-            aria-current={active ? "page" : undefined}
-            style={{
-              display: "block",
-              whiteSpace: "nowrap",
-              padding: pad,
-              fontSize: size,
-              fontWeight: 600,
-              borderRadius: "8px",
-              transition: "background 0.15s, color 0.15s",
-              ...(active
-                ? { color: "#fff", background: "#06b6d4" }
-                : { color: "rgba(255,255,255,0.8)" }),
-            }}
-          >
-            {label}
-          </Link>
-        </li>
+        <NavLinkItem key={href} href={href} label={label} active={active} pad={pad} size={size} />
       );
     });
   }
@@ -122,5 +104,54 @@ export default function Header() {
 
       </div>
     </header>
+  );
+}
+
+function NavLinkItem({
+  href,
+  label,
+  active,
+  pad,
+  size,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+  pad: string;
+  size: string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <li style={{ flexShrink: 0 }}>
+      <Link
+        href={href}
+        aria-current={active ? "page" : undefined}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: "block",
+          whiteSpace: "nowrap",
+          padding: pad,
+          fontSize: size,
+          borderRadius: "8px",
+          transition: "background 0.15s, color 0.15s, box-shadow 0.15s",
+          ...(active
+            ? {
+                color: "#fff",
+                background: "#06b6d4",
+                fontWeight: 700,
+                boxShadow: "0 2px 8px rgba(6,182,212,0.4)",
+              }
+            : {
+                color: "#ffffff",
+                background: hovered ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.12)",
+                fontWeight: 600,
+                border: "1px solid rgba(255,255,255,0.2)",
+              }),
+        }}
+      >
+        {label}
+      </Link>
+    </li>
   );
 }

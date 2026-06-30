@@ -184,9 +184,9 @@ export default function QRGenerator({
       },
       sms: {
         mainText: smsInput.phone,
-        labelText: "Scan this to send an SMS",
+        labelText: "Scan to Send SMS",
         iconType: "sms",
-        ...(smsInput.message.trim() ? { secondaryText: `Pre-filled message: ${smsInput.message.trim()}` } : {}),
+        ...(smsInput.message.trim() ? { secondaryText: `Message: ${smsInput.message.trim()}` } : {}),
       },
     };
     return map[qrType] ?? null;
@@ -1101,7 +1101,7 @@ function SmsForm({
         className="flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs"
         style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-hint)" }}
       >
-        Note: SMS QR codes can only encode the phone number — the message cannot be embedded in the QR URI. Your pre-filled message will appear as text below the QR code for reference.
+        Note: The pre-filled message is embedded in the QR code using the smsto: format, which is recognized by Android camera and Google Lens.
       </p>
     </div>
   );
