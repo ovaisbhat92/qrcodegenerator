@@ -118,6 +118,9 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
   const [error, setError] = useState<string | null>(null);
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [copied, setCopied] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number } | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Video is always in the DOM so the ref is valid before setCameraState("scanning")
@@ -126,6 +129,7 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number>(0);
   const scanningRef = useRef(false);
+  const previewUrlRef = useRef<string | null>(null);
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
@@ -140,11 +144,21 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
   }, []);
 
   useEffect(() => () => stopCamera(), [stopCamera]);
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
 
   function resetAll() {
     setParsed(null);
     setError(null);
     setCopied(false);
+    setUploadedFile(null);
+    setIsProcessing(false);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+      setPreviewUrl(null);
+    }
   }
 
   function handleMethodChange(m: Method) {
@@ -160,7 +174,11 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
-    resetAll();
+
+    // Clear previous scan result but keep showing upload area
+    setParsed(null);
+    setError(null);
+    setCopied(false);
 
     const allowed = ["image/png", "image/jpeg", "image/webp", "image/gif"];
     if (!allowed.includes(file.type)) {
@@ -168,16 +186,22 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
       return;
     }
 
+    // Show thumbnail + filename immediately before jsQR runs
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const objUrl = URL.createObjectURL(file);
+    previewUrlRef.current = objUrl;
+    setPreviewUrl(objUrl);
+    setUploadedFile({ name: file.name, size: file.size });
+    setIsProcessing(true);
+
     const jsQR = (await import("jsqr")).default;
     const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
       const canvas = document.createElement("canvas");
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext("2d");
-      if (!ctx) { setError("Could not read image."); return; }
+      if (!ctx) { setIsProcessing(false); setError("Could not read image."); return; }
       // Draw white background first so transparent PNGs get a solid white base
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -191,15 +215,17 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
       // Fallback: try original colour data in case grayscale conversion hurt contrast
       if (!code) code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
       if (!code) code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "onlyInvert" });
-      if (code) {
+      console.log("[QRScanner] jsQR decode result:", code ? `"${code.data}"` : "null (no QR found)");
+      setIsProcessing(false);
+      if (code && code.data) {
         setParsed(parseResult(code.data));
         trackQRScanned({ method: "upload", content_type: detectContentType(code.data) });
       } else {
         setError("Could not find a QR code in this image. For best results use a plain black-and-white QR. Try cropping the image to just the QR code before uploading.");
       }
     };
-    img.onerror = () => { URL.revokeObjectURL(objectUrl); setError("Could not load image file."); };
-    img.src = objectUrl;
+    img.onerror = () => { setIsProcessing(false); setError("Could not load image file."); };
+    img.src = objUrl;
   }
 
   // ── Camera ────────────────────────────────────────────────────────────────
@@ -342,6 +368,35 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
                 <UploadIcon />
                 <span>Click to upload PNG, JPG, WebP, or GIF</span>
               </button>
+
+              {uploadedFile && previewUrl && (
+                <div className="mt-4 space-y-2">
+                  <div
+                    className="overflow-hidden rounded-lg"
+                    style={{ border: "1px solid var(--border)", background: "var(--bg-input)" }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={previewUrl}
+                      alt="Uploaded image"
+                      style={{ maxHeight: "200px", width: "100%", objectFit: "contain", display: "block" }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs" style={{ color: "var(--text-secondary)" }}>
+                    <span className="truncate font-medium">{uploadedFile.name}</span>
+                    <span className="ml-2 shrink-0">{formatFileSize(uploadedFile.size)}</span>
+                  </div>
+                  {isProcessing && (
+                    <div
+                      className="flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium"
+                      style={{ background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.2)", color: "#06b6d4" }}
+                    >
+                      <SpinnerIcon />
+                      Scanning for QR code…
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 
@@ -924,4 +979,19 @@ function WifiIcon() {
       <line x1="12" y1="20" x2="12.01" y2="20" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+      <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+      <path d="M12 2a10 10 0 0110 10" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
