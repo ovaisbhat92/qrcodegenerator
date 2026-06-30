@@ -87,5 +87,7 @@ export function generateEmailPayload(input: EmailInput): string {
 
 export function generateSmsPayload(input: SmsInput): string {
   const digits = input.phone.trim().replace(/\D/g, "");
-  return `SMSTO:${digits}:${input.message.trim()}`;
+  // Indian mobile: 10 digits starting with 6-9 → auto-prefix +91
+  const phone = /^[6-9]\d{9}$/.test(digits) ? `+91${digits}` : `+${digits}`;
+  return `sms:${phone}`;
 }

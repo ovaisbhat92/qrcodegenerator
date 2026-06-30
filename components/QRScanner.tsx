@@ -131,12 +131,13 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
       if (!ctx) { setError("Could not read image."); return; }
       ctx.drawImage(img, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+      if (!code) code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "onlyInvert" });
       if (code) {
         setParsed(parseResult(code.data));
         trackQRScanned({ method: "upload", content_type: detectContentType(code.data) });
       } else {
-        setError("No QR code found in this image. Try a clearer or higher-resolution scan.");
+        setError("Could not find a QR code in this image. Make sure the QR code is clearly visible and well-lit. Try cropping the image to just the QR code before uploading.");
       }
     };
     img.onerror = () => { URL.revokeObjectURL(objectUrl); setError("Could not load image file."); };
