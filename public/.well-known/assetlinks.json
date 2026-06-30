@@ -3,6 +3,9 @@
   "target": {
     "namespace": "android_app",
     "package_name": "in.freeqrcodemaker.app",
-    "sha256_cert_fingerprints": ["7A:B2:C0:FD:EB:08:AE:BA:AE:35:65:47:EF:85:19:43:E0:C0:1F:5C:02:DC:AF:52:13:80:37:B5:C6:2A:40:1B"]
+    "sha256_cert_fingerprints": [
+      "7A:B2:C0:FD:EB:08:AE:BA:AE:35:65:47:EF:85:19:43:E0:C0:1F:5C:02:DC:AF:52:13:80:37:B5:C6:2A:40:1B",
+      "67:19:CE:E0:BD:E7:1E:D8:26:E5:F2:22:4F:FB:DF:A6:5A:D8:A9:95:9D:C5:D0:16:96:02:D8:F8:47:36:97:C6"
+    ]
   }
 }]
