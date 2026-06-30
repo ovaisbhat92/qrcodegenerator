@@ -295,24 +295,24 @@ describe("generateEmailPayload", () => {
 const BASE_SMS: SmsInput = { phone: "+91 9876543210", message: "" };
 
 describe("generateSmsPayload", () => {
-  it("produces smsto: URI with phone number and empty message", () => {
-    expect(generateSmsPayload(BASE_SMS)).toBe("smsto:+919876543210:");
+  it("produces sms: URI with phone number only when no message", () => {
+    expect(generateSmsPayload(BASE_SMS)).toBe("sms:+919876543210");
   });
 
-  it("includes message in smsto: URI when provided", () => {
-    expect(generateSmsPayload({ ...BASE_SMS, message: "Hi there" })).toBe("smsto:+919876543210:Hi there");
+  it("includes encoded message in sms:?body= format when provided", () => {
+    expect(generateSmsPayload({ ...BASE_SMS, message: "Hi there" })).toBe("sms:+919876543210?body=Hi%20there");
   });
 
   it("auto-prefixes +91 for 10-digit Indian numbers starting with 6-9", () => {
-    expect(generateSmsPayload({ phone: "9876543210", message: "" })).toBe("smsto:+919876543210:");
+    expect(generateSmsPayload({ phone: "9876543210", message: "" })).toBe("sms:+919876543210");
   });
 
   it("strips spaces, dashes, and parentheses from phone number", () => {
-    expect(generateSmsPayload({ phone: "+1 (555) 123-4567", message: "" })).toBe("smsto:+15551234567:");
+    expect(generateSmsPayload({ phone: "+1 (555) 123-4567", message: "" })).toBe("sms:+15551234567");
   });
 
   it("handles whitespace-only message identically to empty message", () => {
-    expect(generateSmsPayload({ ...BASE_SMS, message: "   " })).toBe("smsto:+919876543210:");
+    expect(generateSmsPayload({ ...BASE_SMS, message: "   " })).toBe("sms:+919876543210");
   });
 });
 

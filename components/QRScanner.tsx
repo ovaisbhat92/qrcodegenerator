@@ -22,20 +22,59 @@ type ParsedResult =
   | { type: "geo"; raw: string; lat: string; lng: string }
   | { type: "text"; raw: string };
 
-function toGrayscale(imageData: ImageData): ImageData {
+// Convert every pixel to pure black (0) or pure white (255) based on luminance threshold.
+// This is critical for colored QR codes (e.g. cyan corner eyes) — jsQR expects black on white.
+function applyBWThreshold(imageData: ImageData): ImageData {
   const src = imageData.data;
   const out = new Uint8ClampedArray(src.length);
   for (let i = 0; i < src.length; i += 4) {
-    const alpha = src[i + 3];
-    const luma = alpha < 128
-      ? 255  // treat transparent pixels as white background
-      : Math.round(0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2]);
-    out[i] = luma;
-    out[i + 1] = luma;
-    out[i + 2] = luma;
-    out[i + 3] = 255;
+    const gray = 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2];
+    const bw = gray < 128 ? 0 : 255;
+    out[i] = bw; out[i + 1] = bw; out[i + 2] = bw; out[i + 3] = 255;
   }
   return new ImageData(out, imageData.width, imageData.height);
+}
+
+type JsQRFn = (data: Uint8ClampedArray, width: number, height: number, options?: { inversionAttempts?: "attemptBoth" | "dontInvert" | "onlyInvert" | "invertFirst" }) => { data: string } | null;
+
+// Four-pass decode: raw → BW threshold → 800px BW → 1200px BW
+function decodeQRFromImage(jsQR: JsQRFn, img: HTMLImageElement): { data: string } | null {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  const drawWhiteBase = (w: number, h: number) => {
+    canvas.width = w; canvas.height = h;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+  };
+
+  // Attempt 1: original size, no preprocessing
+  drawWhiteBase(img.width, img.height);
+  let imageData = ctx.getImageData(0, 0, img.width, img.height);
+  let result = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+  if (result) return result;
+
+  // Attempt 2: original size, B&W threshold
+  drawWhiteBase(img.width, img.height);
+  imageData = ctx.getImageData(0, 0, img.width, img.height);
+  const bw2 = applyBWThreshold(imageData);
+  result = jsQR(bw2.data, bw2.width, bw2.height, { inversionAttempts: "attemptBoth" });
+  if (result) return result;
+
+  // Attempt 3: 800×800 resize, B&W threshold
+  drawWhiteBase(800, 800);
+  imageData = ctx.getImageData(0, 0, 800, 800);
+  const bw3 = applyBWThreshold(imageData);
+  result = jsQR(bw3.data, 800, 800, { inversionAttempts: "attemptBoth" });
+  if (result) return result;
+
+  // Attempt 4: 1200×1200 resize, B&W threshold
+  drawWhiteBase(1200, 1200);
+  imageData = ctx.getImageData(0, 0, 1200, 1200);
+  const bw4 = applyBWThreshold(imageData);
+  return jsQR(bw4.data, 1200, 1200, { inversionAttempts: "attemptBoth" });
 }
 
 function parseResult(raw: string): ParsedResult {
@@ -52,11 +91,22 @@ function parseResult(raw: string): ParsedResult {
   }
 
   if (/^(sms:|smsto:)/i.test(raw)) {
-    const body = raw.replace(/^(smsto:|sms:)/i, "");
-    const colonIdx = body.indexOf(":");
-    const phone = colonIdx !== -1 ? body.slice(0, colonIdx) : body;
-    const message = colonIdx !== -1 ? body.slice(colonIdx + 1) : "";
-    return { type: "sms", raw, phone, message };
+    if (/^smsto:/i.test(raw)) {
+      // Legacy smsto:+phone:message format
+      const body = raw.replace(/^smsto:/i, "");
+      const colonIdx = body.indexOf(":");
+      const phone = colonIdx !== -1 ? body.slice(0, colonIdx) : body;
+      const message = colonIdx !== -1 ? body.slice(colonIdx + 1) : "";
+      return { type: "sms", raw, phone, message };
+    } else {
+      // sms:+phone?body=message format
+      const withoutScheme = raw.replace(/^sms:/i, "");
+      const qIdx = withoutScheme.indexOf("?");
+      const phone = qIdx !== -1 ? withoutScheme.slice(0, qIdx) : withoutScheme;
+      const params = qIdx !== -1 ? new URLSearchParams(withoutScheme.slice(qIdx + 1)) : null;
+      const message = params?.get("body") ?? "";
+      return { type: "sms", raw, phone, message };
+    }
   }
 
   if (/^upi:\/\/pay\?/i.test(raw)) {
@@ -175,7 +225,6 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
     if (!file) return;
     e.target.value = "";
 
-    // Clear previous scan result but keep showing upload area
     setParsed(null);
     setError(null);
     setCopied(false);
@@ -194,38 +243,42 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
     setUploadedFile({ name: file.name, size: file.size });
     setIsProcessing(true);
 
-    const jsQR = (await import("jsqr")).default;
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { setIsProcessing(false); setError("Could not read image."); return; }
-      // Draw white background first so transparent PNGs get a solid white base
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      // Grayscale pass — converts colored QR dots (cyan, gradient, etc.) to
-      // luminance values that jsQR can reliably threshold
-      const gray = toGrayscale(imageData);
-      let code = jsQR(gray.data, gray.width, gray.height, { inversionAttempts: "attemptBoth" });
-      if (!code) code = jsQR(gray.data, gray.width, gray.height, { inversionAttempts: "onlyInvert" });
-      // Fallback: try original colour data in case grayscale conversion hurt contrast
-      if (!code) code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
-      if (!code) code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "onlyInvert" });
-      console.log("[QRScanner] jsQR decode result:", code ? `"${code.data}"` : "null (no QR found)");
+    // Bail out if decode takes longer than 10 seconds
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
       setIsProcessing(false);
+      setError("Scanning timed out. Please try a clearer image.");
+    }, 10000);
+
+    try {
+      const jsQR = (await import("jsqr")).default;
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Could not load image file."));
+        img.src = objUrl;
+      });
+
+      if (timedOut) return;
+
+      const code = decodeQRFromImage(jsQR, img);
+      console.log("[QRScanner] jsQR decode result:", code ? `"${code.data}"` : "null (no QR found)");
+
+      clearTimeout(timeoutId);
+      setIsProcessing(false);
+
       if (code && code.data) {
         setParsed(parseResult(code.data));
         trackQRScanned({ method: "upload", content_type: detectContentType(code.data) });
       } else {
-        setError("Could not find a QR code in this image. For best results use a plain black-and-white QR. Try cropping the image to just the QR code before uploading.");
+        setError("Could not decode QR code. Try uploading a clearer image or screenshot of the QR code directly.");
       }
-    };
-    img.onerror = () => { setIsProcessing(false); setError("Could not load image file."); };
-    img.src = objUrl;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      setIsProcessing(false);
+      setError(err instanceof Error ? err.message : "Could not load image file.");
+    }
   }
 
   // ── Camera ────────────────────────────────────────────────────────────────
@@ -657,7 +710,7 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
           )}
         </div>
         <a
-          href={`sms:${parsed.phone}`}
+          href={parsed.raw}
           className="btn-cyan flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold"
         >
           <SmsIcon />

@@ -1100,7 +1100,7 @@ function SmsForm({
         className="flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs"
         style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-hint)" }}
       >
-        Note: The pre-filled message is embedded in the QR code using the smsto: format, which is recognized by Android camera and Google Lens.
+        Note: The phone number and message are embedded using the sms:?body= format, which reliably pre-fills both fields on Android and iOS.
       </p>
     </div>
   );

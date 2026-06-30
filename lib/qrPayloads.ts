@@ -89,12 +89,16 @@ export function generateEmailPayload(input: EmailInput): string {
 }
 
 export function generateSmsPayload(input: SmsInput): string {
-  const cleanPhone = input.phone.replace(/[\s\-\(\)]/g, "").replace(/^\+/, "");
-  // Indian mobile: 10 digits starting with 6-9 → auto-prefix +91
-  const formattedPhone = cleanPhone.length === 10 && ["6","7","8","9"].includes(cleanPhone[0])
-    ? `+91${cleanPhone}`
-    : `+${cleanPhone}`;
+  const cleanPhone = input.phone.replace(/[\s\-\(\)]/g, "");
+  // Preserve existing + prefix; auto-prefix +91 for 10-digit Indian numbers (6–9)
+  const formattedPhone = cleanPhone.startsWith("+")
+    ? cleanPhone
+    : cleanPhone.length === 10 && ["6","7","8","9"].includes(cleanPhone[0])
+      ? `+91${cleanPhone}`
+      : `+${cleanPhone}`;
   const message = input.message.trim();
-  // smsto: format embeds the message and is recognized by Android camera/Google Lens
-  return `smsto:${formattedPhone}:${message}`;
+  // sms:?body= format reliably pre-fills the message body on Android and iOS
+  return message
+    ? `sms:${formattedPhone}?body=${encodeURIComponent(message)}`
+    : `sms:${formattedPhone}`;
 }
