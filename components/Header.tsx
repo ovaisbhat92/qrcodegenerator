@@ -143,10 +143,9 @@ function NavLinkItem({
                 boxShadow: "0 2px 8px rgba(6,182,212,0.4)",
               }
             : {
-                color: "#ffffff",
-                background: hovered ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.12)",
+                color: "#0f172a",
+                background: hovered ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.88)",
                 fontWeight: 600,
-                border: "1px solid rgba(255,255,255,0.2)",
               }),
         }}
       >

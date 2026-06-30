@@ -186,7 +186,6 @@ export default function QRGenerator({
         mainText: smsInput.phone,
         labelText: "Scan to Send SMS",
         iconType: "sms",
-        ...(smsInput.message.trim() ? { secondaryText: `Message: ${smsInput.message.trim()}` } : {}),
       },
     };
     return map[qrType] ?? null;

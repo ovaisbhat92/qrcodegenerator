@@ -577,7 +577,7 @@ function ResultCard({ parsed }: { parsed: ParsedResult }) {
           )}
         </div>
         <a
-          href={parsed.raw}
+          href={`sms:${parsed.phone}`}
           className="btn-cyan flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold"
         >
           <SmsIcon />
