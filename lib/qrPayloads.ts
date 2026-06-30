@@ -1,4 +1,4 @@
-import type { VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
+import type { VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput, WifiInput } from "@/types/qr";
 
 // Strip ASCII control characters (U+0000–U+001F, U+007F) to prevent QR data corruption.
 function stripControlChars(value: string): string {
@@ -101,4 +101,8 @@ export function generateSmsPayload(input: SmsInput): string {
   return message
     ? `sms:${formattedPhone}?body=${encodeURIComponent(message)}`
     : `sms:${formattedPhone}`;
+}
+
+export function generateWifiPayload(input: WifiInput): string {
+  return `WIFI:T:${input.encryption};S:${input.ssid};P:${input.password};H:${input.hidden};;`;
 }

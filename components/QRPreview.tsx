@@ -35,7 +35,7 @@ export interface QRCaption {
   mainText?: string;
   secondaryText?: string;
   labelText: string;
-  iconType: "phone" | "link" | "location" | "vcard" | "text" | "whatsapp" | "email" | "sms";
+  iconType: "phone" | "link" | "location" | "vcard" | "text" | "whatsapp" | "email" | "sms" | "wifi";
   labelColor?: string; // defaults to cyan #06b6d4
 }
 
@@ -57,6 +57,7 @@ const QR_TYPE_LABELS: Record<QRType, string> = {
   whatsapp: "WhatsApp message",
   email: "email",
   sms: "SMS message",
+  wifi: "WiFi network",
 };
 
 let qrModulePromise: Promise<{ default: unknown }> | null = null;
@@ -761,6 +762,15 @@ function CaptionIcon({ type }: { type: QRCaption["iconType"] }) {
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
           <line x1="9" y1="10" x2="15" y2="10" strokeLinecap="round" />
           <line x1="9" y1="14" x2="13" y2="14" strokeLinecap="round" />
+        </svg>
+      );
+    case "wifi":
+      return (
+        <svg {...shared}>
+          <path d="M5 12.55a11 11 0 0114.08 0" />
+          <path d="M1.42 9a16 16 0 0121.16 0" />
+          <path d="M8.53 16.11a6 6 0 016.95 0" />
+          <line x1="12" y1="20" x2="12.01" y2="20" />
         </svg>
       );
     default:

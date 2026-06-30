@@ -9,9 +9,10 @@ import {
   generateWhatsAppPayload,
   generateEmailPayload,
   generateSmsPayload,
+  generateWifiPayload,
 } from "../qrPayloads";
 import { validateUpi } from "../validators";
-import type { VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
+import type { VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput, WifiInput } from "@/types/qr";
 
 // ── generateUrlPayload ────────────────────────────────────────────────────────
 
@@ -313,6 +314,30 @@ describe("generateSmsPayload", () => {
 
   it("handles whitespace-only message identically to empty message", () => {
     expect(generateSmsPayload({ ...BASE_SMS, message: "   " })).toBe("sms:+919876543210");
+  });
+});
+
+// ── generateWifiPayload ───────────────────────────────────────────────────────
+
+describe("generateWifiPayload", () => {
+  it("generates correct format for WPA network", () => {
+    expect(generateWifiPayload({ ssid: "MyHome", password: "pass123", encryption: "WPA", hidden: false }))
+      .toBe("WIFI:T:WPA;S:MyHome;P:pass123;H:false;;");
+  });
+
+  it("generates correct format for open network", () => {
+    expect(generateWifiPayload({ ssid: "CafeWifi", password: "", encryption: "nopass", hidden: false }))
+      .toBe("WIFI:T:nopass;S:CafeWifi;P:;H:false;;");
+  });
+
+  it("sets H:true for hidden network", () => {
+    expect(generateWifiPayload({ ssid: "SecretNet", password: "abc", encryption: "WPA", hidden: true }))
+      .toBe("WIFI:T:WPA;S:SecretNet;P:abc;H:true;;");
+  });
+
+  it("generates correct format for WEP network", () => {
+    expect(generateWifiPayload({ ssid: "OldRouter", password: "wepkey", encryption: "WEP", hidden: false }))
+      .toBe("WIFI:T:WEP;S:OldRouter;P:wepkey;H:false;;");
   });
 });
 

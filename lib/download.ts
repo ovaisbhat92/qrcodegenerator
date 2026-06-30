@@ -17,6 +17,7 @@ const FILENAMES: Record<QRType, string> = {
   whatsapp: "whatsapp-qr-code",
   email: "email-qr-code",
   sms: "sms-qr-code",
+  wifi: "wifi-qr-code",
 };
 
 export function getFilename(qrType: QRType): string {

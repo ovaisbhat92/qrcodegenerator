@@ -22,59 +22,73 @@ type ParsedResult =
   | { type: "geo"; raw: string; lat: string; lng: string }
   | { type: "text"; raw: string };
 
-// Convert every pixel to pure black (0) or pure white (255) based on luminance threshold.
-// This is critical for colored QR codes (e.g. cyan corner eyes) — jsQR expects black on white.
 function applyBWThreshold(imageData: ImageData): ImageData {
   const src = imageData.data;
   const out = new Uint8ClampedArray(src.length);
   for (let i = 0; i < src.length; i += 4) {
     const gray = 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2];
-    const bw = gray < 128 ? 0 : 255;
+    const bw = gray < 140 ? 0 : 255;
     out[i] = bw; out[i + 1] = bw; out[i + 2] = bw; out[i + 3] = 255;
   }
   return new ImageData(out, imageData.width, imageData.height);
 }
 
-type JsQRFn = (data: Uint8ClampedArray, width: number, height: number, options?: { inversionAttempts?: "attemptBoth" | "dontInvert" | "onlyInvert" | "invertFirst" }) => { data: string } | null;
+async function decodeQRFromFile(file: File): Promise<string | null> {
+  // Method 1: ZXing (better with styled/colored QR codes)
+  try {
+    const { BrowserQRCodeReader } = await import("@zxing/library");
+    const codeReader = new BrowserQRCodeReader();
+    const img = document.createElement("img");
+    const url = URL.createObjectURL(file);
+    img.src = url;
+    await new Promise<void>((resolve) => { img.onload = () => resolve(); });
+    const result = await codeReader.decodeFromImageElement(img);
+    URL.revokeObjectURL(url);
+    if (result) return result.getText();
+  } catch {
+    // ZXing failed — fall through to jsQR
+  }
 
-// Four-pass decode: raw → BW threshold → 800px BW → 1200px BW
-function decodeQRFromImage(jsQR: JsQRFn, img: HTMLImageElement): { data: string } | null {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
+  // Method 2: jsQR with B&W preprocessing at multiple sizes
+  try {
+    const jsQR = (await import("jsqr")).default;
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
 
-  const drawWhiteBase = (w: number, h: number) => {
-    canvas.width = w; canvas.height = h;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(img, 0, 0, w, h);
-  };
+    const sizes = [
+      { w: bitmap.width, h: bitmap.height },
+      { w: 800, h: 800 },
+      { w: 1200, h: 1200 },
+    ];
 
-  // Attempt 1: original size, no preprocessing
-  drawWhiteBase(img.width, img.height);
-  let imageData = ctx.getImageData(0, 0, img.width, img.height);
-  let result = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
-  if (result) return result;
+    for (const size of sizes) {
+      canvas.width = size.w;
+      canvas.height = size.h;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, size.w, size.h);
+      ctx.drawImage(bitmap, 0, 0, size.w, size.h);
 
-  // Attempt 2: original size, B&W threshold
-  drawWhiteBase(img.width, img.height);
-  imageData = ctx.getImageData(0, 0, img.width, img.height);
-  const bw2 = applyBWThreshold(imageData);
-  result = jsQR(bw2.data, bw2.width, bw2.height, { inversionAttempts: "attemptBoth" });
-  if (result) return result;
+      // Attempt with original colors
+      let imageData = ctx.getImageData(0, 0, size.w, size.h);
+      let result = jsQR(imageData.data, size.w, size.h, { inversionAttempts: "attemptBoth" });
+      if (result) return result.data;
 
-  // Attempt 3: 800×800 resize, B&W threshold
-  drawWhiteBase(800, 800);
-  imageData = ctx.getImageData(0, 0, 800, 800);
-  const bw3 = applyBWThreshold(imageData);
-  result = jsQR(bw3.data, 800, 800, { inversionAttempts: "attemptBoth" });
-  if (result) return result;
+      // Attempt with B&W threshold
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, size.w, size.h);
+      ctx.drawImage(bitmap, 0, 0, size.w, size.h);
+      imageData = ctx.getImageData(0, 0, size.w, size.h);
+      const bw = applyBWThreshold(imageData);
+      result = jsQR(bw.data, size.w, size.h, { inversionAttempts: "attemptBoth" });
+      if (result) return result.data;
+    }
+  } catch (e) {
+    console.error("jsQR failed:", e);
+  }
 
-  // Attempt 4: 1200×1200 resize, B&W threshold
-  drawWhiteBase(1200, 1200);
-  imageData = ctx.getImageData(0, 0, 1200, 1200);
-  const bw4 = applyBWThreshold(imageData);
-  return jsQR(bw4.data, 1200, 1200, { inversionAttempts: "attemptBoth" });
+  return null;
 }
 
 function parseResult(raw: string): ParsedResult {
@@ -235,7 +249,6 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
       return;
     }
 
-    // Show thumbnail + filename immediately before jsQR runs
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     const objUrl = URL.createObjectURL(file);
     previewUrlRef.current = objUrl;
@@ -243,7 +256,6 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
     setUploadedFile({ name: file.name, size: file.size });
     setIsProcessing(true);
 
-    // Bail out if decode takes longer than 10 seconds
     let timedOut = false;
     const timeoutId = setTimeout(() => {
       timedOut = true;
@@ -252,32 +264,24 @@ export default function QRScanner({ onGenerateFromResult: _onGenerateFromResult 
     }, 10000);
 
     try {
-      const jsQR = (await import("jsqr")).default;
-      const img = new Image();
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error("Could not load image file."));
-        img.src = objUrl;
-      });
+      const text = await decodeQRFromFile(file);
+      console.log("[QRScanner] decode result:", text ? `"${text}"` : "null");
 
       if (timedOut) return;
-
-      const code = decodeQRFromImage(jsQR, img);
-      console.log("[QRScanner] jsQR decode result:", code ? `"${code.data}"` : "null (no QR found)");
-
       clearTimeout(timeoutId);
       setIsProcessing(false);
 
-      if (code && code.data) {
-        setParsed(parseResult(code.data));
-        trackQRScanned({ method: "upload", content_type: detectContentType(code.data) });
+      if (text) {
+        setParsed(parseResult(text));
+        trackQRScanned({ method: "upload", content_type: detectContentType(text) });
       } else {
         setError("Could not decode QR code. Try uploading a clearer image or screenshot of the QR code directly.");
       }
     } catch (err) {
+      if (timedOut) return;
       clearTimeout(timeoutId);
       setIsProcessing(false);
-      setError(err instanceof Error ? err.message : "Could not load image file.");
+      setError(err instanceof Error ? err.message : "Could not decode image.");
     }
   }
 

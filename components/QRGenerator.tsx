@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { trackQRGenerated } from "@/lib/analytics";
 import { getPrefillData, clearPrefillData } from "@/lib/qrPrefill";
 import { useTheme } from "next-themes";
-import type { QRType, CustomizationOptions, VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
+import type { QRType, CustomizationOptions, VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput, WifiInput } from "@/types/qr";
 import { DEFAULT_CUSTOMIZATION } from "@/types/qr";
 import {
   generateUrlPayload,
@@ -16,6 +16,7 @@ import {
   generateWhatsAppPayload,
   generateEmailPayload,
   generateSmsPayload,
+  generateWifiPayload,
 } from "@/lib/qrPayloads";
 import {
   validateUrl,
@@ -27,6 +28,7 @@ import {
   validateWhatsApp,
   validateEmail,
   validateSms,
+  validateWifi,
 } from "@/lib/validators";
 import QRTypeSelector from "@/components/QRTypeSelector";
 import CustomizationPanel from "@/components/CustomizationPanel";
@@ -59,6 +61,8 @@ const DEFAULT_EMAIL: EmailInput = {
 const DEFAULT_SMS: SmsInput = {
   phone: "", message: "",
 };
+
+const DEFAULT_WIFI: WifiInput = { ssid: "", password: "", encryption: "WPA", hidden: false };
 
 // ── localStorage persistence for customization ───────────────────────────────
 
@@ -113,6 +117,7 @@ export default function QRGenerator({
   const [whatsappInput, setWhatsappInput] = useState<WhatsAppInput>(DEFAULT_WHATSAPP);
   const [emailInput, setEmailInput] = useState<EmailInput>(DEFAULT_EMAIL);
   const [smsInput, setSmsInput] = useState<SmsInput>(DEFAULT_SMS);
+  const [wifiInput, setWifiInput] = useState<WifiInput>(DEFAULT_WIFI);
 
   const { customization, setCustomization, resetToDefaults } = usePersistedCustomization();
   const previewRef = useRef<QRPreviewHandle>(null);
@@ -155,8 +160,12 @@ export default function QRGenerator({
         const v = validateSms(smsInput);
         return { validation: v, payload: v.valid ? generateSmsPayload(smsInput) : "" };
       }
+      case "wifi": {
+        const v = validateWifi(wifiInput);
+        return { validation: v, payload: v.valid ? generateWifiPayload(wifiInput) : "" };
+      }
     }
-  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput, upiInput, whatsappInput, emailInput, smsInput]);
+  }, [qrType, urlInput, textInput, phoneInput, vcardInput, locationInput, upiInput, whatsappInput, emailInput, smsInput, wifiInput]);
 
   const upiCaption = useMemo((): UpiCaption | null => {
     if (qrType !== "upi" || !upiInput.payeeName.trim()) return null;
@@ -187,18 +196,26 @@ export default function QRGenerator({
         labelText: "Scan to Send SMS",
         iconType: "sms",
       },
+      wifi: {
+        mainText: wifiInput.ssid,
+        labelText: "Scan to connect to WiFi",
+        iconType: "wifi" as const,
+      },
     };
     return map[qrType] ?? null;
-  }, [qrType, payload, whatsappInput, emailInput, smsInput]);
+  }, [qrType, payload, whatsappInput, emailInput, smsInput, wifiInput]);
 
-  // Email type always uses L error correction, 512px min, and square dots for maximum scanability.
+  // Email and SMS types always use plain black style for maximum scanner support.
   const effectiveCustomization = useMemo((): CustomizationOptions => {
-    if (qrType === "email") {
+    if (qrType === "email" || qrType === "sms") {
       return {
         ...customization,
-        errorCorrection: "L",
-        size: Math.max(customization.size, 512),
+        errorCorrection: "M",
+        fgColor: "#000000",
         dotStyle: "square",
+        cornerColor: "#000000",
+        gradient: null,
+        cornerGradient: null,
       };
     }
     return customization;
@@ -329,6 +346,9 @@ export default function QRGenerator({
               )}
               {qrType === "sms" && (
                 <SmsForm value={smsInput} onChange={setSmsInput} validation={validation} />
+              )}
+              {qrType === "wifi" && (
+                <WifiForm value={wifiInput} onChange={setWifiInput} validation={validation} />
               )}
             </div>
           </Card>
@@ -1044,6 +1064,9 @@ function EmailForm({
       >
         Note: Due to QR code size limits, only your email address is encoded in the QR. Subject and body fields are not included to ensure reliable scanning.
       </p>
+      <p className="flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(6,182,212,0.06)", border: "1px solid rgba(6,182,212,0.2)", color: "var(--text-hint)" }}>
+        This QR uses high-compatibility black &amp; white style for maximum scanner support.
+      </p>
     </div>
   );
 }
@@ -1102,7 +1125,135 @@ function SmsForm({
       >
         Note: The phone number and message are embedded using the sms:?body= format, which reliably pre-fills both fields on Android and iOS.
       </p>
+      <p className="flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(6,182,212,0.06)", border: "1px solid rgba(6,182,212,0.2)", color: "var(--text-hint)" }}>
+        This QR uses high-compatibility black &amp; white style for maximum scanner support.
+      </p>
     </div>
+  );
+}
+
+// ── WiFi form ─────────────────────────────────────────────────────────────────
+
+function WifiForm({
+  value,
+  onChange,
+  validation,
+}: {
+  value: WifiInput;
+  onChange: (v: WifiInput) => void;
+  validation: ValidationResult;
+}) {
+  const set = <K extends keyof WifiInput>(key: K, val: WifiInput[K]) =>
+    onChange({ ...value, [key]: val });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const ssidHasError = value.ssid !== "" && !validation.valid && !!validation.error && validation.error.includes("SSID");
+  const passHasError = value.ssid !== "" && !validation.valid && !!validation.error && validation.error.includes("Password");
+
+  return (
+    <div className="space-y-3">
+      <Field label="Network name (SSID) *" inputId="wifi-ssid">
+        <input
+          id="wifi-ssid"
+          type="text"
+          placeholder="MyHomeWifi"
+          value={value.ssid}
+          onChange={(e) => set("ssid", e.target.value)}
+          className="themed-input"
+          aria-required="true"
+          aria-invalid={ssidHasError ? true : undefined}
+        />
+        {ssidHasError && (
+          <p role="alert" className="text-xs text-red-500">{validation.error}</p>
+        )}
+      </Field>
+      <Field label="Encryption" inputId="wifi-encryption">
+        <select
+          id="wifi-encryption"
+          value={value.encryption}
+          onChange={(e) => set("encryption", e.target.value as WifiInput["encryption"])}
+          className="themed-input"
+        >
+          <option value="WPA">WPA / WPA2</option>
+          <option value="WEP">WEP</option>
+          <option value="nopass">None (open network)</option>
+        </select>
+      </Field>
+      {value.encryption !== "nopass" && (
+        <Field label="Password *" inputId="wifi-password">
+          <div className="relative">
+            <input
+              id="wifi-password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Your WiFi password"
+              value={value.password}
+              onChange={(e) => set("password", e.target.value)}
+              className="themed-input pr-10"
+              aria-required="true"
+              aria-invalid={passHasError ? true : undefined}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+              style={{ color: "var(--text-hint)" }}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          </div>
+          {passHasError && (
+            <p role="alert" className="text-xs text-red-500">{validation.error}</p>
+          )}
+        </Field>
+      )}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={value.hidden}
+          onClick={() => set("hidden", !value.hidden)}
+          className="relative h-5 w-9 rounded-full transition-colors"
+          style={{ background: value.hidden ? "#06b6d4" : "var(--border)" }}
+        >
+          <span
+            className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform"
+            style={{ left: value.hidden ? "calc(100% - 18px)" : "2px" }}
+          />
+        </button>
+        <label
+          className="cursor-pointer text-sm"
+          style={{ color: "var(--text-secondary)" }}
+          onClick={() => set("hidden", !value.hidden)}
+        >
+          Hidden network
+        </label>
+      </div>
+      <p
+        className="flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs"
+        style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-hint)" }}
+      >
+        Note: Your WiFi password is only stored in the QR code itself — it is never sent to any server.
+      </p>
+    </div>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

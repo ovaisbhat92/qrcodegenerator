@@ -1,6 +1,6 @@
 export type QRType =
   | "url" | "text" | "phone" | "vcard" | "location" | "upi"
-  | "whatsapp" | "email" | "sms";
+  | "whatsapp" | "email" | "sms" | "wifi";
 
 export type DotStyle = "square" | "rounded" | "dots" | "extra-rounded";
 
@@ -49,6 +49,13 @@ export interface EmailInput {
 export interface SmsInput {
   phone: string;
   message: string;
+}
+
+export interface WifiInput {
+  ssid: string;
+  password: string;
+  encryption: "WPA" | "WEP" | "nopass";
+  hidden: boolean;
 }
 
 export interface GradientOptions {

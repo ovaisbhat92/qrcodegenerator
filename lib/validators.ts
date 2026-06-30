@@ -1,4 +1,4 @@
-import type { VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
+import type { VCardInput, LocationInput, UpiInput, WhatsAppInput, EmailInput, SmsInput, WifiInput } from "@/types/qr";
 
 export interface ValidationResult {
   valid: boolean;
@@ -129,6 +129,16 @@ export function validateSms(input: SmsInput): ValidationResult {
   const phone = input.phone.trim();
   if (!phone) {
     return { valid: false, error: "Phone number is required" };
+  }
+  return { valid: true };
+}
+
+export function validateWifi(input: WifiInput): ValidationResult {
+  if (!input.ssid.trim()) {
+    return { valid: false, error: "Network name (SSID) is required" };
+  }
+  if (input.encryption !== "nopass" && !input.password.trim()) {
+    return { valid: false, error: "Password is required for WPA/WPA2 and WEP networks" };
   }
   return { valid: true };
 }

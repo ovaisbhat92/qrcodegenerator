@@ -8,8 +8,9 @@ import {
   validateWhatsApp,
   validateEmail,
   validateSms,
+  validateWifi,
 } from "../validators";
-import type { VCardInput, LocationInput, WhatsAppInput, EmailInput, SmsInput } from "@/types/qr";
+import type { VCardInput, LocationInput, WhatsAppInput, EmailInput, SmsInput, WifiInput } from "@/types/qr";
 
 // ── validateUrl ───────────────────────────────────────────────────────────────
 
@@ -369,5 +370,31 @@ describe("validateLocation (mapslink mode)", () => {
     expect(
       validateLocation({ ...mapsBase, mapsLink: "https://www.google.com/search?q=paris" }).valid
     ).toBe(false);
+  });
+});
+
+// ── validateWifi ─────────────────────────────────────────────────────────────
+
+const BASE_WIFI: WifiInput = { ssid: "MyHome", password: "pass123", encryption: "WPA", hidden: false };
+
+describe("validateWifi", () => {
+  it("passes with valid WPA network", () => {
+    expect(validateWifi(BASE_WIFI).valid).toBe(true);
+  });
+
+  it("fails when SSID is empty", () => {
+    const r = validateWifi({ ...BASE_WIFI, ssid: "" });
+    expect(r.valid).toBe(false);
+    expect(r.error).toMatch(/SSID/i);
+  });
+
+  it("fails when WPA has no password", () => {
+    const r = validateWifi({ ...BASE_WIFI, password: "" });
+    expect(r.valid).toBe(false);
+    expect(r.error).toMatch(/password/i);
+  });
+
+  it("passes open network with no password", () => {
+    expect(validateWifi({ ...BASE_WIFI, encryption: "nopass", password: "" }).valid).toBe(true);
   });
 });
